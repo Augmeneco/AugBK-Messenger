@@ -1,4 +1,4 @@
-QT       += core gui
+QT       += core gui network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -12,12 +12,20 @@ SOURCES += \
     chatwidget.cpp \
     main.cpp \
     mainwindow.cpp \
-    messagewidget.cpp
+    messagewidget.cpp \
+    augvkapi.cpp \
+    longpoll.cpp \
+    vkapi.cpp \
+    requests.cpp
 
 HEADERS += \
     chatwidget.h \
     mainwindow.h \
-    messagewidget.h
+    messagewidget.h \
+    augvkapi.h \
+    longpoll.h \
+    vkapi.h \
+    requests.h
 
 FORMS += \
     chatwidget.ui \
@@ -36,3 +44,5 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 RESOURCES += \
     main.qrc
+
+
