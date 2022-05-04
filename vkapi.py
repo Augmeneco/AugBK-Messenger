@@ -1,5 +1,4 @@
 from enum import Enum
-from urllib import response
 from PyQt6 import QtCore, QtNetwork, QtGui
 
 import requests, os
@@ -11,6 +10,13 @@ class AttachTypes(Enum):
     DOC = 4
     WALL= 5
     STICKER = 6 
+    THUMBNAIL = 7
+    GIF = 8
+
+class PhotoSize(Enum):
+    SMALL = 1
+    MEDIUM = 2
+    BIG = 3
 
 class Attachment:
     name: str
@@ -74,15 +80,17 @@ class VK_API(QtCore.QObject):
     def getAttachmentName(self, data):
         attachType = data['type']
 
-        return attachType + data[attachType]['owner_id'] +'_'+ data[attachType]['id']
+        return attachType + str(data[attachType]['owner_id']) +'_'+ str(data[attachType]['id'])
 
     def loadAttach(self, name, fileType: AttachTypes, url) -> QtGui.QPixmap:
-        path = 'data/images/'
+        path = ''
         name = str(name)
         if fileType == AttachTypes.PHOTO:
             path += 'photos/'+name+'.jpg'
         if fileType == AttachTypes.STICKER:
             path += 'stickers/'+name+'.png'
+        if fileType == AttachTypes.THUMBNAIL:
+            path += 'thumbnails/'+name+'.png'
         
         return self.loadPhoto(url, path)
 
@@ -172,7 +180,7 @@ class VK_API(QtCore.QObject):
 
         if startMessageId >= 0:
             params['start_message_id'] = startMessageId
-        response = self.call('messages.getHistory', params)
+        response = self.call('messages.getHistory', **params)
 
         for userType in ['profiles', 'groups']:
             if userType not in response: continue
@@ -194,10 +202,14 @@ class VK_API(QtCore.QObject):
         for id in msgsIds:
             ids += str(id)+","
 
+        print(msgsIds)
         response = self.call('messages.getById', message_ids=ids, extended=1)
+        print(response)
 
         for item in response['items']:
             result.append(self.parseMsg(item)) 
+
+        return result
 
     def getMsgById(self, msgId):
         return self.getMsgsById([msgId])[0]
@@ -229,7 +241,7 @@ class VK_API(QtCore.QObject):
                 if userIds != '-1,': #узнать бы что ето значит... #todo
                     params['user_ids'] = userIds
                 
-                response = self.call('users.get',params)
+                response = self.call('users.get', **params)
                 for userObject in response:
                     result.append(self.parseUser(userObject))
         
@@ -270,12 +282,13 @@ class VK_API(QtCore.QObject):
             raise Exception('Объект не группы не должен тут появляться')
 
     def parseMsg(self, data):
-        result = Msg
+        result = Msg()
         result.id = data['id']
         result.text = data['text']
         result.fromId = self.getUser(data['from_id']) 
         result.peerId = data['peer_id']
         result.date = data['date']
+        result.attachments = []
 
         for attachmentsObj in data['attachments']:
             if attachmentsObj['type'] == 'sticker':
@@ -289,10 +302,50 @@ class VK_API(QtCore.QObject):
 
                 result.attachments.append(attachment)
 
+            if attachmentsObj['type'] == 'photo':
+                sizes = attachmentsObj['photo']['sizes']
+                photoUrl = self.getPhotoUrl(sizes, PhotoSize.MEDIUM)
+
+                attachment = Attachment()
+                attachment.url = self.getPhotoUrl(sizes)
+                attachment.name = self.getAttachmentName(attachmentsObj)
+                attachment.preview = self.loadAttach(attachment.name, AttachTypes.PHOTO, photoUrl)
+                attachment.attachType = AttachTypes.PHOTO
+
+                result.attachments.append(attachment)
+
+            if attachmentsObj['type'] == 'doc':
+                attachment = Attachment()
+
+                if 'preview' not in attachmentsObj['doc']:
+                    attachment.preview = self.loadAttach(
+                        'doc.jpg', 
+                        AttachTypes.THUMBNAIL, 
+                        'https://sun9-57.userapi.com/impg/8eSBy-qs5hGTfda0rMXDzNdsY3TJbKmylFABRg/PB3ANc3ngBg.jpg?size=60x60&quality=96&sign=b2c1b375366032f3dfbc0b947dd90ffe&type=album'
+                    )
+                else:
+                    sizes = attachmentsObj['doc']['preview']['photo']['sizes']
+                    attachment.preview = self.loadAttach(
+                        self.getAttachmentName(attachmentsObj),
+                        AttachTypes.THUMBNAIL,
+                        self.getPhotoUrl(sizes, PhotoSize.SMALL)
+                    )
+                    attachment.url = self.getPhotoUrl(sizes)
+
+                attachment.name = attachmentsObj['doc']['title']
+                attachment.url = attachmentsObj['doc']['url']
+                attachment.attachType = AttachTypes.DOC
+                
+                if attachmentsObj['doc']['ext'] == 'gif':
+                    attachment.attachType = AttachTypes.GIF
+
+                result.attachments.append(attachment)
+                    
+
         return result
 
 class LongPoll(QtCore.QObject):
-    newMsg = QtCore.pyqtSignal(dict)
+    newMsg = QtCore.pyqtSignal(Msg)
 
     def __init__(self, vkapi: VK_API):
         QtCore.QObject.__init__(self)
@@ -324,6 +377,7 @@ class LongPoll(QtCore.QObject):
 
             self.LPts = int(response['ts'])
             for event in response['updates']:
+                print(event)
                 if int(event[0]) != 4: continue
 
-                self.newMsg.emit(self.vkapi.getMsgById(id(event[1])))
+                self.newMsg.emit(self.vkapi.getMsgById(event[1]))
