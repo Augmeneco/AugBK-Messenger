@@ -1,8 +1,0 @@
-<RCC>
-    <qresource prefix="/icons">
-        <file>icons/send-16-filled.svg</file>
-        <file>icons/arrow-left-16-filled.svg</file>
-        <file>icons/attach-16-filled.svg</file>
-        <file>icons/navigation-16-filled.svg</file>
-    </qresource>
-</RCC>
