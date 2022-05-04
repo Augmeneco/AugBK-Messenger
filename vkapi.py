@@ -1,7 +1,7 @@
 from enum import Enum
 from PyQt6 import QtCore, QtNetwork, QtGui
 
-import requests, os
+import requests, os, time
 
 class AttachTypes(Enum):
     PHOTO = 1
@@ -57,18 +57,21 @@ class VK_API(QtCore.QObject):
         self.chatsCache = {}
 
     def call(self, method, **parameters):
+        print('Call method '+method)
         url = 'https://api.vk.com/method/' + method
         parameters['access_token'] = self.access_token
         if 'v' not in parameters:
             parameters['v'] = self.version
 
-        r = requests.post(url, params=parameters)
-
-        result = r.json()
-
-        # print(result)
+        result = requests.post(url, params=parameters).json()
 
         if 'error' in result:
+            if result['error']['error_code'] == 6 or result['error']['error_code'] == 10:
+                time.sleep(2)
+                print('Forced sleep')
+                return self.call(method, **parameters)
+
+
             error_string = 'VK ERROR #{}: "{}"\nPARAMS: {}'.format(result['error']['error_code'],
                                                         result['error']['error_msg'],
                                                         result['error']['request_params'])
@@ -99,10 +102,10 @@ class VK_API(QtCore.QObject):
         pixMap = QtGui.QPixmap()
 
         dirPath = '/'.join(('data/images/'+path).split('/')[:-1])
+        if not os.path.exists(dirPath):
+            os.makedirs(dirPath)
 
         if not os.path.exists('data/images/'+path):
-            os.makedirs(dirPath)
-            
             response = requests.get(url)
             file = open('data/images/'+path,'wb')
             file.write(response.content)
@@ -113,7 +116,7 @@ class VK_API(QtCore.QObject):
         
 
 
-    def getPhotoUrl(self, data, neededSize): #затычка, переделать как в паскале #todo
+    def getPhotoUrl(self, data, neededSize=PhotoSize.MEDIUM): #затычка, переделать как в паскале #todo
         result = ''
 
         resultObject = data[-1]
@@ -167,6 +170,10 @@ class VK_API(QtCore.QObject):
                 user = self.getUser(resultVar.id)
                 resultVar.name = user.firstName +' '+ user.lastName
                 resultVar.image = user.image
+            result.append(resultVar)
+            self.chatsCache[resultVar.id] = resultVar
+
+        return result
 
 
     def getHistory(self, peerId, count, offset=0, startMessageId=-1):
@@ -202,9 +209,7 @@ class VK_API(QtCore.QObject):
         for id in msgsIds:
             ids += str(id)+","
 
-        print(msgsIds)
         response = self.call('messages.getById', message_ids=ids, extended=1)
-        print(response)
 
         for item in response['items']:
             result.append(self.parseMsg(item)) 
@@ -234,8 +239,8 @@ class VK_API(QtCore.QObject):
             if not exists:
                 userIds += str(id)+','
 
-            params = {}
             if userIds != '':
+                params = {}
                 params['fields'] = 'photo_50, last_seen'
 
                 if userIds != '-1,': #узнать бы что ето значит... #todo
@@ -264,6 +269,12 @@ class VK_API(QtCore.QObject):
                 result = self.parseGroup(data)
                 return result
 
+        result.firstName = data['first_name']
+        result.lastName = data['last_name']
+        result.image = self.loadAttach(data['id'], AttachTypes.PHOTO, data['photo_50'])
+
+        return result
+
     def addUser(self, user):
         for i in self.usersCache:
             if i.id == user.id: return
@@ -273,7 +284,8 @@ class VK_API(QtCore.QObject):
         if ((data['type'] == 'group') or (data['type'] == 'page')):
             result = User()
             result.id = data['id'] * -1
-            result.firstName = ''
+            result.firstName = data['name']
+            result.lastName = ''
             result.image = self.loadAttach(result.id, AttachTypes.PHOTO, data['photo_50'])
 
             self.addUser(result)
@@ -309,7 +321,7 @@ class VK_API(QtCore.QObject):
                 attachment = Attachment()
                 attachment.url = self.getPhotoUrl(sizes)
                 attachment.name = self.getAttachmentName(attachmentsObj)
-                attachment.preview = self.loadAttach(attachment.name, AttachTypes.PHOTO, photoUrl)
+                attachment.preview = self.loadAttach(attachment.name, AttachTypes.THUMBNAIL, photoUrl)
                 attachment.attachType = AttachTypes.PHOTO
 
                 result.attachments.append(attachment)

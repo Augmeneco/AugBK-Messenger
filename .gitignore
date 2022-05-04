@@ -72,3 +72,4 @@ Thumbs.db
 *.exe
 
 data/config.json
+data/images/*
