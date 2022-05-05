@@ -30,11 +30,17 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
             chatWidget.image.clear()
             chatWidget.image.setPixmap(chat.image)
             chatWidget.name.setText('<b>'+chat.name+'</b>')
-            chatWidget.text.setText('{}: {}'.format(
-                chat.previewMsg.fromId.firstName, chat.previewMsg.text)
-            )
-            chatWidget.time.setText(datetime.now().strftime("%H:%M:%S"))
-            chatWidget.unread.setText('<b>0</b>')
+
+            text = '{}: {}'.format(chat.previewMsg.fromId.firstName, chat.previewMsg.text)[:24]
+            if text == 24: text += ' ...'
+
+            chatWidget.text.setText(text)
+            chatWidget.time.setText(datetime.utcfromtimestamp(chat.previewMsg.date).strftime("%H:%M:%S"))
+
+            if chat.unread != 0:
+                chatWidget.unread.setText('<b>'+str(chat.unread)+'</b>')
+            else:
+                chatWidget.unread.clear()
 
             self.chatsListLayout.addWidget(chatWidget)
 

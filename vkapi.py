@@ -45,6 +45,7 @@ class Chat:
     previewMsg: Msg
     image: QtGui.QPixmap
     type: str
+    unread: int
 
 
 class VK_API(QtCore.QObject):
@@ -146,6 +147,15 @@ class VK_API(QtCore.QObject):
             for profile in profiles:
                 self.parseUser(profile)
 
+        users = []
+        for chat in chats:
+            if chat['last_message']['from_id'] > 0:
+                users.append(chat['last_message']['from_id'])
+            if chat['conversation']['peer']['type'] == 'user': 
+                users.append(chat['conversation']['peer']['id'])
+
+        self.getUsers(users)
+
         for chat in chats:
             if chat['conversation']['peer']['id'] in self.chatsCache:
                 result.append(self.chatsCache[chat['conversation']['peer']['id']])
@@ -154,6 +164,11 @@ class VK_API(QtCore.QObject):
             resultVar = Chat()
             resultVar.id = chat['conversation']['peer']['id']
             resultVar.previewMsg = self.parseMsg(chat['last_message'])
+            
+            if 'unread_count' in chat['conversation']:
+                resultVar.unread = chat['conversation']['unread_count']
+            else:
+                resultVar.unread = 0
 
             if chat['conversation']['peer']['type'] == 'chat':
                 resultVar.name = chat['conversation']['chat_settings']['title']
@@ -273,6 +288,7 @@ class VK_API(QtCore.QObject):
         result.lastName = data['last_name']
         result.image = self.loadAttach(data['id'], AttachTypes.PHOTO, data['photo_50'])
 
+        self.usersCache.append(result)
         return result
 
     def addUser(self, user):
