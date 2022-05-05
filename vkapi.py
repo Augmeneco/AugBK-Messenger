@@ -234,6 +234,20 @@ class VK_API(QtCore.QObject):
     def getMsgById(self, msgId):
         return self.getMsgsById([msgId])[0]
 
+    def getGroup(self, id) -> User:
+        for user in self.usersCache:
+            if user.id == id:
+                return user
+
+        response = self.call('groups.getById',group_id=id)
+        user = User()
+        user.id = id*-1
+        user.firstName = response['name']
+        user.lastName = ''
+        user.image = self.loadAttach(id, AttachTypes.PHOTO, response['photo_50'])
+
+        return user
+
     def getUser(self, id) -> User:
         return self.getUsers([id])[0]
 
@@ -243,7 +257,9 @@ class VK_API(QtCore.QObject):
         exists = False
         
         for id in ids:
-            #if id < 0: continue #todo, какая то затычка в куте апи, в паскале нет
+            if id < 0: 
+                result.append(self.getGroup(id))
+                continue
 
             exists = False
             for user in self.usersCache:
@@ -317,6 +333,7 @@ class VK_API(QtCore.QObject):
         result.peerId = data['peer_id']
         result.date = data['date']
         result.attachments = []
+        result.reply = []
 
         for attachmentsObj in data['attachments']:
             if attachmentsObj['type'] == 'sticker':
@@ -405,7 +422,6 @@ class LongPoll(QtCore.QObject):
 
             self.LPts = int(response['ts'])
             for event in response['updates']:
-                print(event)
                 if int(event[0]) != 4: continue
 
                 self.newMsg.emit(self.vkapi.getMsgById(event[1]))
