@@ -235,13 +235,19 @@ class VK_API(QtCore.QObject):
         return self.getMsgsById([msgId])[0]
 
     def getGroup(self, id) -> User:
+        print(id)
         for user in self.usersCache:
             if user.id == id:
                 return user
+        #if id < 0: 
+        #    group_id = id*-1
+        #else:
+        #    group_id = id
+        #if id > 0: id = id*-1
 
-        response = self.call('groups.getById',group_id=id)
+        response = self.call('groups.getById',group_id=id*-1)
         user = User()
-        user.id = id*-1
+        user.id = id
         user.firstName = response['name']
         user.lastName = ''
         user.image = self.loadAttach(id, AttachTypes.PHOTO, response['photo_50'])

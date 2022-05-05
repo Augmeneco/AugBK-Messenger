@@ -60,7 +60,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
             chatWidget.chatObject = chat
 
             text = '{}: {}'.format(chat.previewMsg.fromId.firstName, chat.previewMsg.text)[:24]
-            if len(text) == 24: text += ' ...'
+            if len(text) == 24: text += '...'
 
             chatWidget.text.setText(text)
             chatWidget.time.setText(datetime.utcfromtimestamp(chat.previewMsg.date).strftime("%H:%M:%S"))
@@ -78,6 +78,9 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         self.scrollArea.resizeEvent = self.scrollAreaResized
         self.splitter.splitterMoved.connect(self.splitterMoved)
 
+        self.backButtonCompact.clicked.connect(self.backButtonCompactClicked)
+        self.backButtonCompact.hide()
+
         self.lpThread = QThread()
         self.longpoll = vkapi.LongPoll(self.vkapi)
         self.longpoll.moveToThread(self.lpThread)
@@ -94,8 +97,27 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         else:
             self.compactMode = False
         
+        self.adaptInterface()
+            
+    def adaptInterface(self):
+        if self.compactMode:
+            self.backButtonCompact.show()
+            if self.activeChat != 0:
+                self.splitter.moveSplitter(0,1)
+            else:
+                self.splitter.moveSplitter(self.scrollArea_2.width()+self.scrollArea.width(), 1)
+        else:
+            self.backButtonCompact.hide()
+            self.splitter.moveSplitter(300,1)
+
+    def backButtonCompactClicked(self):
+        self.activeChat = 0
+        self.adaptInterface()
+
     def showEvent(self, event):
         self.resizeGuiElements()
+        self.splitter.moveSplitter(300,1)
+        self.adaptInterface()
 
     def resizeGuiElements(self):
         self.chatsListWidget.setFixedWidth(self.scrollArea_2.width()-24)
@@ -144,11 +166,42 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
 
         return messageWidget
 
+    def updateChatsList(self, msg: vkapi.Msg):
+        widgets = (self.chatsListLayout.itemAt(i).widget() for i in range(self.chatsListLayout.count())) 
+
+        for chat in widgets:
+            if chat.chatObject.id == msg.peerId:
+                index = self.chatsListLayout.indexOf(chat)
+
+                chat.chatObject.previewMsg = msg
+
+                if msg.peerId != self.activeChat:
+                    chat.chatObject.unread += 1
+                else:
+                    chat.chatObject.unread = 0
+
+                text = '{}: {}'.format(chat.chatObject.previewMsg.fromId.firstName, chat.chatObject.previewMsg.text)[:24]
+                if len(text) == 24: text += '...'
+
+                chat.text.setText(text)
+                chat.time.setText(datetime.utcfromtimestamp(chat.chatObject.previewMsg.date).strftime("%H:%M:%S"))
+
+                if chat.chatObject.unread != 0:
+                    chat.unread.setText('<b>'+str(chat.chatObject.unread)+'</b>')
+                    chat.unread.setStyleSheet('QLabel { background-color: #99a2ad; color: white; margin: 2}')
+                else:
+                    chat.unread.clear()
+
+                self.chatsListLayout.insertWidget(0, chat)
+                break
+
     def openChat(self, chatObject: vkapi.Chat):
         while self.msgsListLayout.count():
             child = self.msgsListLayout.takeAt(0)
             if child.widget():
                 child.widget().deleteLater()
+
+        self.vkapi.call('messages.markAsRead',peer_id = chatObject.id) #todo сделать отрисовку того что прочитано
 
         msgs = self.vkapi.getHistory(chatObject.id, 20)
         msgs.reverse()
@@ -158,6 +211,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
 
         self.activeChat = chatObject.id
         self.scrollArea.verticalScrollBar().setValue(self.scrollArea.verticalScrollBar().maximum())
+        self.adaptInterface()
 
     def scrollAreaResized(self, event):
         self.scrollArea.verticalScrollBar().setValue(self.scrollArea.verticalScrollBar().maximum())
@@ -167,6 +221,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
             messageWidget = self.buildMsgWidget(msg)
             self.msgsListLayout.addWidget(messageWidget)
             self.scrollArea.verticalScrollBar().setValue(self.scrollArea.verticalScrollBar().maximum())
+        self.updateChatsList(msg)
         
 
 app = QApplication(sys.argv)
