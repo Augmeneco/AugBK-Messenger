@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QFileDialog, QMessageBox
 from PyQt6.QtGui import QIcon, QAction, QPalette, QColor
 from PyQt6 import QtWidgets, QtGui
