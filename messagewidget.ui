@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>297</width>
-    <height>86</height>
+    <width>572</width>
+    <height>80</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -23,22 +23,12 @@
    <item>
     <layout class="QVBoxLayout" name="verticalLayout_2">
      <item>
-      <spacer name="verticalSpacer">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>20</width>
-         <height>40</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item>
       <widget class="QLabel" name="avatar">
        <property name="text">
         <string>avatar</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
        </property>
       </widget>
      </item>
@@ -61,6 +51,18 @@ border: 1px solid rgb(221, 221, 221); }</string>
       <enum>QFrame::Raised</enum>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,1">
+      <property name="leftMargin">
+       <number>6</number>
+      </property>
+      <property name="topMargin">
+       <number>6</number>
+      </property>
+      <property name="rightMargin">
+       <number>6</number>
+      </property>
+      <property name="bottomMargin">
+       <number>6</number>
+      </property>
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>
@@ -77,25 +79,12 @@ border: 1px solid rgb(221, 221, 221); }</string>
          </widget>
         </item>
         <item>
-         <spacer name="horizontalSpacer_2">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
          <widget class="QLabel" name="date">
           <property name="text">
            <string>date</string>
           </property>
           <property name="alignment">
-           <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
+           <set>Qt::AlignBottom|Qt::AlignRight|Qt::AlignTrailing</set>
           </property>
           <property name="wordWrap">
            <bool>false</bool>
@@ -158,19 +147,22 @@ border: 1px solid rgb(221, 221, 221); }</string>
       </item>
       <item>
        <layout class="QHBoxLayout" name="textLayout">
+        <property name="spacing">
+         <number>6</number>
+        </property>
         <item>
          <widget class="QLabel" name="text">
           <property name="styleSheet">
            <string notr="true"/>
           </property>
           <property name="text">
-           <string>text</string>
+           <string>wodopwofjeopfjoewpjfopewjfjoewjfoewjfopweofjewofjowejfojweopfjewopjfoewjofewf</string>
           </property>
           <property name="scaledContents">
            <bool>false</bool>
           </property>
           <property name="alignment">
-           <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+           <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
           </property>
           <property name="wordWrap">
            <bool>true</bool>

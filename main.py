@@ -191,6 +191,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
                     chat.unread.setStyleSheet('QLabel { background-color: #99a2ad; color: white; margin: 2}')
                 else:
                     chat.unread.clear()
+                    chat.unread.setStyleSheet('QLabel { background-color: transparent}')
 
                 self.chatsListLayout.insertWidget(0, chat)
                 break
@@ -201,7 +202,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
             if child.widget():
                 child.widget().deleteLater()
 
-        self.vkapi.call('messages.markAsRead',peer_id = chatObject.id) #todo сделать отрисовку того что прочитано
+        #self.vkapi.call('messages.markAsRead',peer_id = chatObject.id) #todo сделать отрисовку того что прочитано
 
         msgs = self.vkapi.getHistory(chatObject.id, 20)
         msgs.reverse()
@@ -210,7 +211,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
             self.msgsListLayout.addWidget(messageWidget)
 
         self.activeChat = chatObject.id
-        self.scrollArea.verticalScrollBar().setValue(self.scrollArea.verticalScrollBar().maximum())
+        #self.scrollArea.verticalScrollBar().setValue(self.scrollArea.verticalScrollBar().maximum())
         self.adaptInterface()
 
     def scrollAreaResized(self, event):
@@ -220,7 +221,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         if self.activeChat == msg.peerId:
             messageWidget = self.buildMsgWidget(msg)
             self.msgsListLayout.addWidget(messageWidget)
-            self.scrollArea.verticalScrollBar().setValue(self.scrollArea.verticalScrollBar().maximum())
+            #self.scrollArea.verticalScrollBar().setValue(self.scrollArea.verticalScrollBar().maximum())
         self.updateChatsList(msg)
         
 

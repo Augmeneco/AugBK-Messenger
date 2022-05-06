@@ -38,6 +38,7 @@ class Msg:
     peerId: int
     reply: list
     attachments: list
+    deleted = False
 
 class Chat:
     id: int
@@ -190,7 +191,6 @@ class VK_API(QtCore.QObject):
 
         return result
 
-
     def getHistory(self, peerId, count, offset=0, startMessageId=-1):
         result = []
 
@@ -229,13 +229,17 @@ class VK_API(QtCore.QObject):
         for item in response['items']:
             result.append(self.parseMsg(item)) 
 
+        if len(response['items']) == 0:
+            msg = Msg()
+            msg.deleted = True
+            result.append(msg)
+
         return result
 
-    def getMsgById(self, msgId):
+    def getMsgById(self, msgId) -> Msg:
         return self.getMsgsById([msgId])[0]
 
     def getGroup(self, id) -> User:
-        print(id)
         for user in self.usersCache:
             if user.id == id:
                 return user
@@ -245,7 +249,7 @@ class VK_API(QtCore.QObject):
         #    group_id = id
         #if id > 0: id = id*-1
 
-        response = self.call('groups.getById',group_id=id*-1)
+        response = self.call('groups.getById',group_id=id*-1)[0]
         user = User()
         user.id = id
         user.firstName = response['name']
@@ -330,6 +334,18 @@ class VK_API(QtCore.QObject):
             return result
         else:
             raise Exception('Объект не группы не должен тут появляться')
+
+    def parseLP(self, data):
+        result = Msg()
+        result.id = data[1]
+        result.peerId = data[3]
+        result.fromId = self.getUser(int(data[6]['from']))
+        result.attachments = []
+        result.reply = []
+        result.date = time.time()
+        result.text = '<b>Сообщение удалено: </b>'+data[5]
+
+        return result
 
     def parseMsg(self, data):
         result = Msg()
@@ -430,4 +446,8 @@ class LongPoll(QtCore.QObject):
             for event in response['updates']:
                 if int(event[0]) != 4: continue
 
-                self.newMsg.emit(self.vkapi.getMsgById(event[1]))
+                msg = self.vkapi.getMsgById(event[1])
+                if msg.deleted == True:
+                    msg = self.vkapi.parseLP(event)
+
+                self.newMsg.emit(msg)
