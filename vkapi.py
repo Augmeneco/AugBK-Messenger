@@ -335,7 +335,7 @@ class VK_API(QtCore.QObject):
         else:
             raise Exception('Объект не группы не должен тут появляться')
 
-    def parseLP(self, data):
+    def parseDeletedMsg(self, data):
         result = Msg()
         result.id = data[1]
         result.peerId = data[3]
@@ -448,6 +448,6 @@ class LongPoll(QtCore.QObject):
 
                 msg = self.vkapi.getMsgById(event[1])
                 if msg.deleted == True:
-                    msg = self.vkapi.parseLP(event)
+                    msg = self.vkapi.parseDeletedMsg(event)
 
                 self.newMsg.emit(msg)
