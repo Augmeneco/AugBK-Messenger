@@ -163,6 +163,10 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         
         if len(msg.reply) == 0:
             messageWidget.replyMsgsWidget.hide()
+        else:
+            for reply in msg.reply:
+                replyWidget = self.buildMsgWidget(reply)
+                messageWidget.replyMsgsLayout.addWidget(replyWidget)
 
         return messageWidget
 

@@ -348,6 +348,7 @@ class VK_API(QtCore.QObject):
         return result
 
     def parseMsg(self, data):
+        print(data)
         result = Msg()
         result.id = data['id']
         result.text = data['text']
@@ -356,6 +357,14 @@ class VK_API(QtCore.QObject):
         result.date = data['date']
         result.attachments = []
         result.reply = []
+
+        if 'reply_message' in data:
+            reply_msg = self.parseMsg(data['reply_message'])
+            result.reply.append(reply_msg)
+        if 'fwd_messages' in data:
+            for reply in data['fwd_messages']:
+                reply_msg = self.parseMsg(reply)
+                result.reply.append(reply_msg)
 
         for attachmentsObj in data['attachments']:
             if attachmentsObj['type'] == 'sticker':
