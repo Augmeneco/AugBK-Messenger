@@ -348,15 +348,24 @@ class VK_API(QtCore.QObject):
         return result
 
     def parseMsg(self, data):
-        print(data)
         result = Msg()
-        result.id = data['id']
-        result.text = data['text']
-        result.fromId = self.getUser(data['from_id']) 
-        result.peerId = data['peer_id']
-        result.date = data['date']
-        result.attachments = []
-        result.reply = []
+        
+        if 'id' in data:
+            result.id = data['id']
+            result.text = data['text']
+            result.fromId = self.getUser(data['from_id']) 
+            result.peerId = data['peer_id']
+            result.date = data['date']
+            result.attachments = []
+            result.reply = []
+        else:
+            result.id = -1
+            result.text = data['text']
+            result.fromId = self.getUser(data['from_id']) 
+            result.peerId = -1
+            result.date = data['date']
+            result.attachments = []
+            result.reply = []  
 
         if 'reply_message' in data:
             reply_msg = self.parseMsg(data['reply_message'])
