@@ -1,0 +1,30 @@
+# Maintainer: Cha14ka <cha14ka@yandex.ru>
+pkgname=augvk
+pkgver=1.0
+pkgrel=1
+pkgdesc="AugScreenshot - VKontakte messenger written on Python/QT6 with support of responsive design and touchscreens."
+arch=('any')
+url="https://github.com/Augmeneco/AugBK-Messenger"
+license=('GPL3')
+depends=('python-pyqt6' 'python-requests')
+source=("git+https://github.com/Augmeneco/AugBK-Messenger")
+md5sums=('SKIP')
+
+prepare() {
+    cd AugBK-Messenger
+    git checkout python
+}
+
+package() {
+    cd AugBK-Messenger
+
+    mkdir -p $pkgdir$HOME/.local/share/augvk
+    mkdir -p $pkgdir$HOME/.local/share/applications
+    mkdir -p $pkgdir/usr/share/pixmaps/
+
+    cp logo.png $pkgdir/usr/share/pixmaps/augvk.png
+    cp *.py $pkgdir$HOME/.local/share/augvk/
+    cp augvk.desktop $pkgdir$HOME/.local/share/applications/
+
+    install -Dm0755 augvk "$pkgdir/usr/bin/augvk"
+}

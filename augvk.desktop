@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=AugVK Messenger
+GenericName=AugVK Messenger
+Exec=augvk
+Terminal=false
+Icon=/usr/share/pixmaps/logo.png
+X-Purism-FormFactor=Workstation;Mobile;

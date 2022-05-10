@@ -1,0 +1,3 @@
+#!/bin/bash
+cd $HOME/.local/share/augvk
+python3 main.py
