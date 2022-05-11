@@ -13,18 +13,19 @@ md5sums=('SKIP')
 prepare() {
     cd AugBK-Messenger
     git checkout python
+
+    mkdir -p $HOME/.local/share/augvk
+    mkdir -p $HOME/.local/share/applications
+
+    cp *.py $HOME/.local/share/augvk/
+    cp augvk.desktop $HOME/.local/share/applications/
+    cp -r data $HOME/.local/share/augvk/
 }
 
 package() {
     cd AugBK-Messenger
 
-    mkdir -p $pkgdir$HOME/.local/share/augvk
-    mkdir -p $pkgdir$HOME/.local/share/applications
     mkdir -p $pkgdir/usr/share/pixmaps/
-
     cp logo.png $pkgdir/usr/share/pixmaps/augvk.png
-    cp *.py $pkgdir$HOME/.local/share/augvk/
-    cp augvk.desktop $pkgdir$HOME/.local/share/applications/
-
     install -Dm0755 augvk "$pkgdir/usr/bin/augvk"
 }
