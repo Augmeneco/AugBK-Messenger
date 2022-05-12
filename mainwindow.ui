@@ -68,7 +68,7 @@
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout_2">
               <item>
-               <widget class="QPushButton" name="pushButton">
+               <widget class="QPushButton" name="menuButton">
                 <property name="maximumSize">
                  <size>
                   <width>16777215</width>
@@ -104,7 +104,7 @@
                <enum>QFrame::Box</enum>
               </property>
               <property name="verticalScrollBarPolicy">
-               <enum>Qt::ScrollBarAlwaysOff</enum>
+               <enum>Qt::ScrollBarAsNeeded</enum>
               </property>
               <property name="horizontalScrollBarPolicy">
                <enum>Qt::ScrollBarAlwaysOff</enum>
@@ -117,7 +117,7 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>354</width>
+                 <width>370</width>
                  <height>516</height>
                 </rect>
                </property>
@@ -256,7 +256,7 @@
                </spacer>
               </item>
               <item>
-               <widget class="QPushButton" name="pushButton_2">
+               <widget class="QPushButton" name="chatInfoButton">
                 <property name="maximumSize">
                  <size>
                   <width>16777215</width>
@@ -289,7 +289,7 @@
                <enum>QFrame::Box</enum>
               </property>
               <property name="verticalScrollBarPolicy">
-               <enum>Qt::ScrollBarAlwaysOff</enum>
+               <enum>Qt::ScrollBarAsNeeded</enum>
               </property>
               <property name="horizontalScrollBarPolicy">
                <enum>Qt::ScrollBarAlwaysOff</enum>
@@ -302,7 +302,7 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>487</width>
+                 <width>471</width>
                  <height>474</height>
                 </rect>
                </property>
@@ -361,7 +361,7 @@
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout_5">
               <item>
-               <widget class="QPushButton" name="pushButton_3">
+               <widget class="QPushButton" name="attachButton">
                 <property name="minimumSize">
                  <size>
                   <width>0</width>

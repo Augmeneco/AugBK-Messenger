@@ -3,13 +3,13 @@
 from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QFileDialog, QMessageBox
 from PyQt6.QtGui import QIcon, QAction, QPalette, QColor
 from PyQt6 import QtWidgets, QtGui
-from PyQt6.QtCore import QTimer, pyqtSignal, QThread, QObject
+from PyQt6.QtCore import QTimer, pyqtSignal, QThread, QObject, QSize
 
 import mainwindow, chatwidget, messagewidget
 import vkapi
 
 from datetime import datetime
-import requests, re, sqlite3, sys, os, traceback, json, threading
+import requests, re, sys, os, traceback, json, threading
 
 
 class MessageWidget(QtWidgets.QWidget, messagewidget.Ui_Form):
@@ -63,6 +63,21 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
 
         QtWidgets.QScroller.grabGesture(self.scrollArea, QtWidgets.QScroller.ScrollerGestureType.LeftMouseButtonGesture)
         QtWidgets.QScroller.grabGesture(self.scrollArea_2, QtWidgets.QScroller.ScrollerGestureType.LeftMouseButtonGesture)
+
+        self.menuButton.setIcon(QIcon('data/icons/navigation-16-filled.svg'))
+        self.menuButton.setIconSize(QSize(32,32))
+
+        self.backButtonCompact.setIcon(QIcon('data/icons/arrow-left-16-filled.svg'))
+        self.backButtonCompact.setIconSize(QSize(32,32))
+
+        self.chatInfoButton.setIcon(QIcon('data/icons/navigation-16-filled.svg'))
+        self.chatInfoButton.setIconSize(QSize(32,32))
+
+        self.attachButton.setIcon(QIcon('data/icons/attach-16-filled.svg'))
+        self.attachButton.setIconSize(QSize(32,32))
+
+        self.sendMessageButton.setIcon(QIcon('data/icons/send-16-filled.svg'))
+        self.sendMessageButton.setIconSize(QSize(32,32))
 
         chats = self.vkapi.getChats(100)
         for chat in chats:
@@ -191,8 +206,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
                 if child.widget():
                     child.widget().deleteLater()
 
-            self.vkapi.call('messages.markAsRead',peer_id = chatObject.id) #todo сделать отрисовку того что прочитано
-        
+            threading.Thread(target=self.vkapi.call, args=('messages.markAsRead'), kwargs={'peer_id':chatObject.id}).start()
         msgs = self.vkapi.getHistory(chatObject.id, count, offset)
         for msg in msgs:
             messageWidget = self.buildMsgWidget(msg)
@@ -273,8 +287,8 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         if self.scrollArea.verticalScrollBar().value() == 0:
             self.activeChatOffset += 20
             
-            self.scrollArea.verticalScrollBar().setValue(1)
             self.lastMsgScrollOffset = self.scrollArea.verticalScrollBar().maximum()
+            self.scrollArea.verticalScrollBar().setValue(self.scrollArea.verticalScrollBar().maximum())
             self.openChat(self.vkapi.chatsCache[self.activeChat], 20, self.activeChatOffset)
             
             self.scrollArea.verticalScrollBar().rangeChanged.connect(self.moveMsgOffsetScroll)
