@@ -1,10 +1,10 @@
 #!/usr/bin/python
 
-from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QFileDialog, QMessageBox
-from PyQt6.QtGui import QIcon, QAction, QPalette, QColor
-from PyQt6 import QtWidgets, QtGui
-from PyQt6.QtCore import QTimer, pyqtSignal, QThread, QObject, QSize, QUrl
-from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QFileDialog, QMessageBox
+from PyQt5.QtGui import QIcon, QPalette, QColor
+from PyQt5 import QtWidgets, QtGui
+from PyQt5.QtCore import QTimer, pyqtSignal, QThread, QObject, QSize, QUrl
+from PyQt5.QtWebEngineWidgets import QWebEngineView
 
 import mainwindow, chatwidget, messagewidget
 import vkapi
@@ -51,20 +51,22 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         super(MainWindow, self).__init__(*args, **kwargs)
         self.setupUi(self)
 
+        self.compactMode = False
+        self.initComplete = False
         if not os.path.exists('data/config.json'):
             self.stackedWidget.setCurrentIndex(1)
 
             self.webengine = QWebEngineView()
             self.verticalLayout_10.addWidget(self.webengine)
             self.webengine.show()
-            self.webengine.urlChanged = self.urlChanged
+            self.webengine.urlChanged.connect(self.urlChanged)
 
             self.tokenAuthButton.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(2))
             self.tokenLoginButton.clicked.connect(lambda: self.authByTokenURL(self.tokenEdit.text()))
 
-            self.webengine.setUrl(QUrl('https://oauth.vk.com/authorize?client_id=2685278&scope=1073737727&redirect_uri=https://oauth.vk.com/blank.html&display=page&response_type=token&revoke=1'))
-
-        self.continueInit()
+            self.webengine.setUrl(QUrl('https://oauth.vk.com/authorize?client_id=2685278&scope=1073737727&redirect_uri=https://oauth.vk.com/blank.html&display=mobile&response_type=token&revoke=1'))
+        else:
+            self.continueInit()
 
     def authByTokenURL(self, url):
         token = re.findall('access_token=(.+?)&',url)[0]
@@ -74,16 +76,19 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
 
         self.stackedWidget.setCurrentIndex(0)
         self.continueInit()
+        
 
     def urlChanged(self, url):
-        print(url)
+        url = url.url()
+        if 'access_token' in url and 'oauth.vk.com/blank.html' in url:
+            self.authByTokenURL(url)
+            self.webengine.deleteLater()
 
     def continueInit(self):
         self.config = json.loads(open('data/config.json','r').read())
         self.vkapi = vkapi.VK_API(self.config['token'])
         self.activeChat = 0
         self.activeChatOffset = 0
-        self.compactMode = False
         self.lastMsgScrollPos = 0
         self.scrollArea.verticalScrollBar().valueChanged.connect(self.msgScrollMoved)
         self.sendMessageButton.clicked.connect(
@@ -127,6 +132,9 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         self.longpoll.newMsg.connect(self.newMsgEvent)
         self.lpThread.started.connect(self.longpoll.start)
         self.lpThread.start()
+
+        self.initComplete = True
+        self.adaptInterface()
         
     def getChats(self, chats):
         for chat in chats:
@@ -276,6 +284,8 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         self.updateChatsList(msg)
 
     def resizeEvent(self, event):
+        if not self.initComplete: return
+
         self.resizeGuiElements()
 
         if self.width() < self.height():
@@ -284,7 +294,6 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
             self.compactMode = False
         
         self.adaptInterface()
-        print('was here')
             
     def adaptInterface(self):
         if self.compactMode:

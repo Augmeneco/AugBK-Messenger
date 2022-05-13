@@ -1,5 +1,5 @@
 from enum import Enum
-from PyQt6 import QtCore, QtNetwork, QtGui
+from PyQt5 import QtCore, QtNetwork, QtGui
 
 import requests, os, time
 
