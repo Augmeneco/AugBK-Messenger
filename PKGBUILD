@@ -6,7 +6,7 @@ pkgdesc="AugScreenshot - VKontakte messenger written on Python/QT6 with support 
 arch=('any')
 url="https://github.com/Augmeneco/AugBK-Messenger"
 license=('GPL3')
-depends=('python-pyqt6' 'python-requests')
+depends=('python-pyqt6' 'python-pyqt6-webengine' 'python-requests')
 source=("git+https://github.com/Augmeneco/AugBK-Messenger")
 md5sums=('SKIP')
 

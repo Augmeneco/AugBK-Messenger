@@ -429,6 +429,26 @@ class VK_API(QtCore.QObject):
 
         return result
 
+class AsyncVKAPI(QtCore.QObject):
+    getChatsSignal = QtCore.pyqtSignal(object)
+    getHistorySignal = QtCore.pyqtSignal(object, object, object, object)
+
+    def __init__(self, vkapi):
+        self.vkapi = vkapi
+        QtCore.QObject.__init__(self)
+
+    def __getattr__(self, name):
+        def method(*args):
+            if name == 'getChats':
+                result = self.vkapi.getChats(*args)
+                self.getChatsSignal.emit(result)
+
+            if name == 'getHistory':
+                result = [self.vkapi.getHistory(args[0].id, args[1], args[2]), *args]
+                self.getHistorySignal.emit(*result)
+
+        return method
+
 class LongPoll(QtCore.QObject):
     newMsg = QtCore.pyqtSignal(Msg)
 
