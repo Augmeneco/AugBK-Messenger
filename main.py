@@ -1,10 +1,9 @@
 #!/usr/bin/python
 
-from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QFileDialog, QMessageBox
-from PyQt5.QtGui import QIcon, QPalette, QColor
-from PyQt5 import QtWidgets, QtGui
-from PyQt5.QtCore import QTimer, pyqtSignal, QThread, QObject, QSize, QUrl
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QFileDialog, QMessageBox
+from PyQt6.QtGui import QIcon, QAction, QPalette, QColor
+from PyQt6 import QtWidgets, QtGui
+from PyQt6.QtCore import QTimer, pyqtSignal, QThread, QObject, QSize
 
 import mainwindow, chatwidget, messagewidget
 import vkapi
@@ -44,51 +43,18 @@ class ChatWidget(QtWidgets.QWidget, chatwidget.Ui_Form):
         self.setStyleSheet('QWidget { background-color: transparent }')
 
     def mouseReleaseEvent(self, event):
-        self.openChat.emit(self.chatObject, 200, 0)
+        self.openChat.emit(self.chatObject, 20, 0)
 
 class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
     def __init__(self, *args, obj=None, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
         self.setupUi(self)
 
-        self.compactMode = False
-        self.initComplete = False
-        if not os.path.exists('data/config.json'):
-            self.stackedWidget.setCurrentIndex(1)
-
-            self.webengine = QWebEngineView()
-            self.verticalLayout_10.addWidget(self.webengine)
-            self.webengine.show()
-            self.webengine.urlChanged.connect(self.urlChanged)
-
-            self.tokenAuthButton.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(2))
-            self.tokenLoginButton.clicked.connect(lambda: self.authByTokenURL(self.tokenEdit.text()))
-
-            self.webengine.setUrl(QUrl('https://oauth.vk.com/authorize?client_id=2685278&scope=1073737727&redirect_uri=https://oauth.vk.com/blank.html&display=mobile&response_type=token&revoke=1'))
-        else:
-            self.continueInit()
-
-    def authByTokenURL(self, url):
-        token = re.findall('access_token=(.+?)&',url)[0]
-        open('data/config.json','w').write(json.dumps({
-            'token':token
-        }))
-
-        self.stackedWidget.setCurrentIndex(0)
-        self.continueInit()
-        
-
-    def urlChanged(self, url):
-        url = url.url()
-        if 'access_token' in url and 'oauth.vk.com/blank.html' in url:
-            self.authByTokenURL(url)
-            self.webengine.deleteLater()
-
-    def continueInit(self):
         self.config = json.loads(open('data/config.json','r').read())
         self.vkapi = vkapi.VK_API(self.config['token'])
         self.activeChat = 0
         self.activeChatOffset = 0
+        self.compactMode = False
         self.lastMsgScrollPos = 0
         self.scrollArea.verticalScrollBar().valueChanged.connect(self.msgScrollMoved)
         self.sendMessageButton.clicked.connect(
@@ -113,30 +79,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         self.sendMessageButton.setIcon(QIcon('data/icons/send-16-filled.svg'))
         self.sendMessageButton.setIconSize(QSize(32,32))
 
-        self.scrollArea.resizeEvent = self.scrollAreaResized
-        self.splitter.splitterMoved.connect(self.splitterMoved)
-
-        self.backButtonCompact.clicked.connect(self.backButtonCompactClicked)
-        self.backButtonCompact.hide()
-
-        self.getChatsThread = QThread()
-        self.asyncGetChats = vkapi.AsyncVKAPI(self.vkapi)
-        self.asyncGetChats.moveToThread(self.getChatsThread)
-        self.asyncGetChats.getChatsSignal.connect(self.getChats)
-        self.getChatsThread.started.connect(lambda: self.asyncGetChats.getChats(100))
-        self.getChatsThread.start()
-
-        self.lpThread = QThread()
-        self.longpoll = vkapi.LongPoll(self.vkapi)
-        self.longpoll.moveToThread(self.lpThread)
-        self.longpoll.newMsg.connect(self.newMsgEvent)
-        self.lpThread.started.connect(self.longpoll.start)
-        self.lpThread.start()
-
-        self.initComplete = True
-        self.adaptInterface()
-        
-    def getChats(self, chats):
+        chats = self.vkapi.getChats(100)
         for chat in chats:
             chatWidget = ChatWidget()
             chatWidget.image.clear()
@@ -159,6 +102,20 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
             chatWidget.openChat.connect(self.openChat)
 
             self.chatsListLayout.addWidget(chatWidget)
+
+        self.scrollArea.resizeEvent = self.scrollAreaResized
+        self.splitter.splitterMoved.connect(self.splitterMoved)
+
+        self.backButtonCompact.clicked.connect(self.backButtonCompactClicked)
+        self.backButtonCompact.hide()
+
+        self.lpThread = QThread()
+        self.longpoll = vkapi.LongPoll(self.vkapi)
+        self.longpoll.moveToThread(self.lpThread)
+        self.longpoll.newMsg.connect(self.newMsgEvent)
+        
+        self.lpThread.started.connect(self.longpoll.start)
+        self.lpThread.start()
 
     def buildMsgWidget(self, msg: vkapi.Msg):
         messageWidget = MessageWidget()
@@ -240,17 +197,8 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
 
                 self.chatsListLayout.insertWidget(0, chat)
                 break
-    
-    def openChat(self, *args):
-        self.openChatThread = QThread()
-        self.asyncGetHistory = vkapi.AsyncVKAPI(self.vkapi)
-        self.asyncGetHistory.moveToThread(self.openChatThread)
-        self.asyncGetHistory.getHistorySignal.connect(self.getHistory)
-        self.openChatThread.started.connect(lambda: self.asyncGetHistory.getHistory(*args))
-        self.openChatThread.start()
 
-    def getHistory(self, msgs, chatObject: vkapi.Chat, count, offset):
-        self.openChatThread.terminate()
+    def openChat(self, chatObject: vkapi.Chat, count, offset):
         if offset == 0:
             self.activeChatOffset = 0
             while self.msgsListLayout.count():
@@ -258,6 +206,8 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
                 if child.widget():
                     child.widget().deleteLater()
 
+            threading.Thread(target=self.vkapi.call, args=('messages.markAsRead'), kwargs={'peer_id':chatObject.id}).start()
+        msgs = self.vkapi.getHistory(chatObject.id, count, offset)
         for msg in msgs:
             messageWidget = self.buildMsgWidget(msg)
             self.msgsListLayout.insertWidget(0, messageWidget)
@@ -284,8 +234,6 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         self.updateChatsList(msg)
 
     def resizeEvent(self, event):
-        if not self.initComplete: return
-
         self.resizeGuiElements()
 
         if self.width() < self.height():
@@ -316,8 +264,8 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         self.adaptInterface()
 
     def resizeGuiElements(self):
-        self.chatsListWidget.setFixedWidth(self.scrollArea_2.width()-10) #24 пикселей скролл
-        self.msgsListWidget.setFixedWidth(self.scrollArea.width()-10)
+        self.chatsListWidget.setFixedWidth(self.scrollArea_2.width()-24)
+        self.msgsListWidget.setFixedWidth(self.scrollArea.width()-24)
 
     def splitterMoved(self, pos, index):
         self.resizeGuiElements()

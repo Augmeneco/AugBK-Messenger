@@ -2,11 +2,11 @@
 pkgname=augvk
 pkgver=1.0
 pkgrel=1
-pkgdesc="AugScreenshot - VKontakte messenger written on Python/QT5 with support of responsive design and touchscreens."
+pkgdesc="AugScreenshot - VKontakte messenger written on Python/QT6 with support of responsive design and touchscreens."
 arch=('any')
 url="https://github.com/Augmeneco/AugBK-Messenger"
 license=('GPL3')
-depends=('qt5-webview' 'python-pyqt5' 'python-pyqt5-webengine' 'python-requests')
+depends=('python-pyqt6' 'python-requests')
 source=("git+https://github.com/Augmeneco/AugBK-Messenger")
 md5sums=('SKIP')
 
