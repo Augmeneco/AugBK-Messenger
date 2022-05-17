@@ -4,5 +4,5 @@ Name=AugVK Messenger
 GenericName=AugVK Messenger
 Exec=augvk
 Terminal=false
-Icon=/usr/share/pixmaps/logo.png
+Icon=/usr/share/pixmaps/augvk.png
 X-Purism-FormFactor=Workstation;Mobile;
