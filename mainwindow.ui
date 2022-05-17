@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>858</width>
-    <height>564</height>
+    <width>673</width>
+    <height>548</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -117,8 +117,8 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>370</width>
-                 <height>516</height>
+                 <width>289</width>
+                 <height>500</height>
                 </rect>
                </property>
                <layout class="QVBoxLayout" name="verticalLayout_5">
@@ -180,7 +180,7 @@
              <number>0</number>
             </property>
             <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_4">
+             <layout class="QHBoxLayout" name="horizontalLayout_4" stretch="0,0,1,0">
               <item>
                <widget class="QPushButton" name="backButtonCompact">
                 <property name="minimumSize">
@@ -240,20 +240,13 @@
                 <property name="text">
                  <string/>
                 </property>
+                <property name="alignment">
+                 <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                </property>
+                <property name="wordWrap">
+                 <bool>true</bool>
+                </property>
                </widget>
-              </item>
-              <item>
-               <spacer name="horizontalSpacer">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
               </item>
               <item>
                <widget class="QPushButton" name="chatInfoButton">
@@ -302,8 +295,8 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>471</width>
-                 <height>474</height>
+                 <width>367</width>
+                 <height>248</height>
                 </rect>
                </property>
                <layout class="QVBoxLayout" name="verticalLayout_6">
@@ -387,7 +380,23 @@
                </widget>
               </item>
               <item>
-               <widget class="QLineEdit" name="messageTextLabel"/>
+               <widget class="QPlainTextEdit" name="messageTextEdit">
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>40</height>
+                 </size>
+                </property>
+                <property name="undoRedoEnabled">
+                 <bool>true</bool>
+                </property>
+                <property name="lineWrapMode">
+                 <enum>QPlainTextEdit::WidgetWidth</enum>
+                </property>
+                <property name="plainText">
+                 <string/>
+                </property>
+               </widget>
               </item>
               <item>
                <widget class="QPushButton" name="sendMessageButton">

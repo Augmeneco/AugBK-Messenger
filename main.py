@@ -3,7 +3,7 @@
 from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QFileDialog, QMessageBox
 from PyQt6.QtGui import QIcon, QAction, QPalette, QColor
 from PyQt6 import QtWidgets, QtGui
-from PyQt6.QtCore import QTimer, pyqtSignal, QThread, QObject, QSize
+from PyQt6.QtCore import QTimer, pyqtSignal, QThread, QObject, QSize, Qt
 
 import mainwindow, chatwidget, messagewidget
 import vkapi
@@ -53,7 +53,7 @@ class ChatWidget(QtWidgets.QWidget, chatwidget.Ui_Form):
         self.setStyleSheet('QWidget { background-color: transparent }')
 
     def mouseReleaseEvent(self, event):
-        self.openChat.emit(self.chatObject, 200, 0)
+        self.openChat.emit(self.chatObject, 50, 0)
 
 class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
     def __init__(self, *args, obj=None, **kwargs):
@@ -88,7 +88,8 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         self.lastMsgScrollPos = 0
         self.scrollArea.verticalScrollBar().valueChanged.connect(self.msgScrollMoved)
         self.sendMessageButton.clicked.connect(
-            lambda: self.sendMessage(self.messageTextLabel.text(), self.activeChat))
+            lambda: self.sendMessage(self.messageTextEdit.toPlainText(), self.activeChat))
+        self.messageTextEdit.keyPressEvent = self.messageTextEditEnterHandler
         
 
         QtWidgets.QScroller.grabGesture(self.scrollArea, QtWidgets.QScroller.ScrollerGestureType.LeftMouseButtonGesture)
@@ -149,6 +150,12 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
 
         self.initComplete = True
         self.adaptInterface()
+
+    def messageTextEditEnterHandler(self, event):
+        if event.key() == 16777220:
+            self.sendMessage(self.messageTextEdit.toPlainText(), self.activeChat)
+        else:
+            QtWidgets.QPlainTextEdit.keyPressEvent(self.messageTextEdit, event)
 
     def openImageViewer(self, attach):
         self.stackedWidget.setCurrentIndex(2)
@@ -288,7 +295,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         params = {'message':text,'peer_id':peerId,'random_id':0}
         threading.Thread(target=self.vkapi.call, args=("messages.send",), kwargs=params).start()
         
-        self.messageTextLabel.clear()
+        self.messageTextEdit.clear()
 
     def scrollAreaResized(self, event):
         pass
