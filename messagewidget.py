@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file 'messagewidget.ui'
+# Form implementation generated from reading ui file '.\messagewidget.ui'
 #
 # Created by: PyQt6 UI code generator 6.2.3
 #
@@ -78,7 +78,7 @@ class Ui_Form(object):
         self.text.setStyleSheet("")
         self.text.setScaledContents(False)
         self.text.setAlignment(QtCore.Qt.AlignmentFlag.AlignBottom|QtCore.Qt.AlignmentFlag.AlignLeading|QtCore.Qt.AlignmentFlag.AlignLeft)
-        self.text.setWordWrap(True)
+        self.text.setWordWrap(False)
         self.text.setObjectName("text")
         self.textLayout.addWidget(self.text)
         self.verticalLayout.addLayout(self.textLayout)

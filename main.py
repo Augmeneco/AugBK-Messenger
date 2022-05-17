@@ -61,6 +61,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         self.setupUi(self)
 
         self.initComplete = False
+        self.compactMode = False
         if not os.path.exists('data/config.json'):
             self.stackedWidget.setCurrentIndex(1)
             self.authByTokenButton.clicked.connect(self.authByToken)
