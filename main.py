@@ -19,11 +19,21 @@ class MessageWidget(QtWidgets.QWidget, messagewidget.Ui_Form):
         super().__init__()
         self.setupUi(self)
 
-    def resizeEvent(self, event):
-        pass
+    #def resizeEvent(self, event):
+    #    pass
 
     def showEvent(self, event):
         self.moveScrollBottom.emit(self.scrollBottom)
+
+class ClickableAttachWidget(QtWidgets.QLabel):
+    attachClicked = pyqtSignal(object)
+
+    def __init__(self):
+        super().__init__()
+
+    def mousePressEvent(self, event):
+        self.attachClicked.emit(self.attachObject)
+        
 
 class ChatWidget(QtWidgets.QWidget, chatwidget.Ui_Form):
     openChat = pyqtSignal(vkapi.Chat, int, int)
@@ -43,13 +53,32 @@ class ChatWidget(QtWidgets.QWidget, chatwidget.Ui_Form):
         self.setStyleSheet('QWidget { background-color: transparent }')
 
     def mouseReleaseEvent(self, event):
-        self.openChat.emit(self.chatObject, 20, 0)
+        self.openChat.emit(self.chatObject, 200, 0)
 
 class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
     def __init__(self, *args, obj=None, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
         self.setupUi(self)
 
+        self.initComplete = False
+        if not os.path.exists('data/config.json'):
+            self.stackedWidget.setCurrentIndex(1)
+            self.authByTokenButton.clicked.connect(self.authByToken)
+        else:
+            self.initMainWindow()
+    
+    def authByToken(self):
+        token = self.authByTokenEdit.text()
+        if 'access_token=' in token:
+            token = re.findall('access_token=(.+?)&',token)[0]
+
+        open('data/config.json','w').write(json.dumps({
+            'token':token
+        }))
+        self.stackedWidget.setCurrentIndex(0)
+        self.initMainWindow()
+
+    def initMainWindow(self):
         self.config = json.loads(open('data/config.json','r').read())
         self.vkapi = vkapi.VK_API(self.config['token'])
         self.activeChat = 0
@@ -117,6 +146,30 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         self.lpThread.started.connect(self.longpoll.start)
         self.lpThread.start()
 
+        self.initComplete = True
+        self.adaptInterface()
+
+    def openImageViewer(self, attach):
+        self.stackedWidget.setCurrentIndex(2)
+        imageAttach = self.vkapi.loadAttach(attach.name, vkapi.AttachTypes.PHOTO, attach.url)
+
+        if imageAttach.width() >= self.imagePreviewWindow.width():
+            sizeDiff = imageAttach.width() - self.imagePreviewWindow.width()
+            imageAttach = imageAttach.scaledToWidth(imageAttach.width()-sizeDiff)
+        if imageAttach.height() >= self.imagePreviewWindow.height():
+            sizeDiff = imageAttach.height() - self.imagePreviewWindow.height()
+            imageAttach = imageAttach.scaledToHeight(imageAttach.height()-sizeDiff)
+  
+        self.imagePreviewWidget.setPixmap(
+            imageAttach
+        )
+        self.imagePreviewWidget.mousePressEvent = self.closeImageViewer
+
+    def closeImageViewer(self, event):
+        self.imagePreviewWidget.clear()
+        self.stackedWidget.setCurrentIndex(0)
+        self.adaptInterface()
+
     def buildMsgWidget(self, msg: vkapi.Msg):
         messageWidget = MessageWidget()
         messageWidget.msgObject = msg
@@ -139,11 +192,12 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
                     messageWidget.text.setPixmap(attach.preview.scaled(128,128))
                     messageWidget.text.setMinimumSize(128,128)
                     
-
                 if attach.attachType == vkapi.AttachTypes.PHOTO:
                     hasImageAttaches = True
-                    image = QtWidgets.QLabel(self)
+                    image = ClickableAttachWidget()
                     image.setPixmap(attach.preview.scaledToWidth(220))
+                    image.attachObject = attach
+                    image.attachClicked.connect(self.openImageViewer)
 
                     if col == 2: 
                         col = 0
@@ -197,6 +251,17 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
 
                 self.chatsListLayout.insertWidget(0, chat)
                 break
+    
+    def markAsRead(self, chatObject):
+        threading.Thread(target=self.vkapi.call, args=('messages.markAsRead',), kwargs={'peer_id':chatObject.id}).start()
+
+        widgets = (self.chatsListLayout.itemAt(i).widget() for i in range(self.chatsListLayout.count())) 
+        for chat in widgets:
+            if chat.chatObject.id == chatObject.id:
+                chat.chatObject.unread = 0
+                chat.unread.clear()
+                chat.unread.setStyleSheet('QLabel { background-color: transparent}')
+
 
     def openChat(self, chatObject: vkapi.Chat, count, offset):
         if offset == 0:
@@ -205,8 +270,8 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
                 child = self.msgsListLayout.takeAt(0)
                 if child.widget():
                     child.widget().deleteLater()
-
-            threading.Thread(target=self.vkapi.call, args=('messages.markAsRead'), kwargs={'peer_id':chatObject.id}).start()
+            self.markAsRead(chatObject)
+            
         msgs = self.vkapi.getHistory(chatObject.id, count, offset)
         for msg in msgs:
             messageWidget = self.buildMsgWidget(msg)
@@ -234,6 +299,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         self.updateChatsList(msg)
 
     def resizeEvent(self, event):
+        if not self.initComplete: return
         self.resizeGuiElements()
 
         if self.width() < self.height():

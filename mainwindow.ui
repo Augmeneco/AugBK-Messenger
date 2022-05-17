@@ -17,7 +17,7 @@
    <bool>true</bool>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="verticalLayout">
+   <layout class="QVBoxLayout" name="verticalLayout_10">
     <property name="leftMargin">
      <number>0</number>
     </property>
@@ -426,7 +426,82 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="login"/>
+      <widget class="QWidget" name="authByTokenWindow">
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
+         <widget class="QLabel" name="label">
+          <property name="text">
+           <string>&lt;a href=&quot;https://oauth.vk.com/oauth/authorize?client_id=2685278&amp;scope=1073737727&amp;redirect_uri=https://oauth.vk.com/blank.html&amp;display=page&amp;response_type=token&amp;revoke=1&amp;slogin_h=313cdef0b2177ec401.351765a09fcd1f2bba&amp;__q_hash=908b8d205940c31676e11f938782deb7&quot;&gt;Получить токен Kate Mobile&lt;/a&gt;</string>
+          </property>
+          <property name="textFormat">
+           <enum>Qt::AutoText</enum>
+          </property>
+          <property name="openExternalLinks">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="authByTokenEdit">
+          <property name="placeholderText">
+           <string>Вставьте ссылку с токеном</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="authByTokenButton">
+          <property name="text">
+           <string>Войти</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="verticalSpacer_3">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="imagePreviewWindow">
+       <layout class="QVBoxLayout" name="verticalLayout_9">
+        <property name="spacing">
+         <number>0</number>
+        </property>
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="QLabel" name="imagePreviewWidget">
+          <property name="text">
+           <string/>
+          </property>
+          <property name="scaledContents">
+           <bool>false</bool>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
      </widget>
     </item>
    </layout>
