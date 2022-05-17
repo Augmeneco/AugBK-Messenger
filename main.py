@@ -184,6 +184,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         messageWidget.avatar.clear()
         messageWidget.avatar.setPixmap(msg.fromId.image)
         messageWidget.text.setText(msg.text)
+        #messageWidget.text.setMinimumWidth(1)
         messageWidget.date.setText(datetime.utcfromtimestamp(msg.date).strftime("%H:%M:%S"))
         messageWidget.name.setText('<b>{} {}</b>'.format(msg.fromId.firstName, msg.fromId.lastName))
         messageWidget.moveScrollBottom.connect(self.moveMsgScroll)
