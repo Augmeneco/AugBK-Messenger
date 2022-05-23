@@ -3,10 +3,10 @@
 from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QFileDialog, QMessageBox
 from PyQt6.QtGui import QIcon, QAction, QPalette, QColor
 from PyQt6 import QtWidgets, QtGui
-from PyQt6.QtCore import QTimer, pyqtSignal, QThread, QObject, QSize, Qt
+from PyQt6.QtCore import QTimer, pyqtSignal, QThread, QThreadPool, QObject, QSize, Qt
 
 import mainwindow, chatwidget, messagewidget
-import vkapi
+import vkapi, asyncvkapi
 
 from datetime import datetime
 import requests, re, sys, os, traceback, json, threading
@@ -14,6 +14,7 @@ import requests, re, sys, os, traceback, json, threading
 
 class MessageWidget(QtWidgets.QWidget, messagewidget.Ui_Form):
     moveScrollBottom = pyqtSignal(bool)
+    getLastMsgScrollPos = pyqtSignal(object)
 
     def __init__(self):
         super().__init__()
@@ -24,6 +25,7 @@ class MessageWidget(QtWidgets.QWidget, messagewidget.Ui_Form):
 
     def showEvent(self, event):
         self.moveScrollBottom.emit(self.scrollBottom)
+        self.getLastMsgScrollPos.emit(self.msgObject)
 
 class ClickableAttachWidget(QtWidgets.QLabel):
     attachClicked = pyqtSignal(object)
@@ -60,6 +62,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         super(MainWindow, self).__init__(*args, **kwargs)
         self.setupUi(self)
 
+        self.threadPool = QThreadPool()
         self.initComplete = False
         self.compactMode = False
         if not os.path.exists('data/config.json'):
@@ -82,11 +85,13 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
     def initMainWindow(self):
         self.config = json.loads(open('data/config.json','r').read())
         self.vkapi = vkapi.VK_API(self.config['token'])
+        self.vkapi.newDebugMessage.connect(self.logging)
+
         self.activeChat = 0
         self.activeChatOffset = 0
         self.compactMode = False
         self.lastMsgScrollPos = 0
-        self.scrollArea.verticalScrollBar().valueChanged.connect(self.msgScrollMoved)
+        #self.scrollArea.verticalScrollBar().valueChanged.connect(self.msgScrollMoved)
         self.sendMessageButton.clicked.connect(
             lambda: self.sendMessage(self.messageTextEdit.toPlainText(), self.activeChat))
         self.messageTextEdit.keyPressEvent = self.messageTextEditEnterHandler
@@ -110,7 +115,30 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         self.sendMessageButton.setIcon(QIcon('data/icons/send-16-filled.svg'))
         self.sendMessageButton.setIconSize(QSize(32,32))
 
-        chats = self.vkapi.getChats(100)
+        getChatsAsync = asyncvkapi.AsyncVKAPI(self.vkapi, 'getChats', count=100)
+        getChatsAsync.signals.getChats.connect(self.getChats)
+        self.threadPool.start(getChatsAsync)
+        self.chatName.setText('Загрузка')
+
+        self.scrollArea.resizeEvent = self.scrollAreaResized
+        self.splitter.splitterMoved.connect(self.splitterMoved)
+
+        self.backButtonCompact.clicked.connect(self.backButtonCompactClicked)
+        self.backButtonCompact.hide()
+
+        self.lpThread = QThread()
+        self.longpoll = vkapi.LongPoll(self.vkapi)
+        self.longpoll.moveToThread(self.lpThread)
+        self.longpoll.newMsg.connect(self.newMsgEvent)
+        
+        self.lpThread.started.connect(self.longpoll.start)
+        self.lpThread.start()
+
+        self.initComplete = True
+        self.adaptInterface()
+
+    def getChats(self, chats):
+        self.chatName.clear()
         for chat in chats:
             chatWidget = ChatWidget()
             chatWidget.image.clear()
@@ -133,23 +161,6 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
             chatWidget.openChat.connect(self.openChat)
 
             self.chatsListLayout.addWidget(chatWidget)
-
-        self.scrollArea.resizeEvent = self.scrollAreaResized
-        self.splitter.splitterMoved.connect(self.splitterMoved)
-
-        self.backButtonCompact.clicked.connect(self.backButtonCompactClicked)
-        self.backButtonCompact.hide()
-
-        self.lpThread = QThread()
-        self.longpoll = vkapi.LongPoll(self.vkapi)
-        self.longpoll.moveToThread(self.lpThread)
-        self.longpoll.newMsg.connect(self.newMsgEvent)
-        
-        self.lpThread.started.connect(self.longpoll.start)
-        self.lpThread.start()
-
-        self.initComplete = True
-        self.adaptInterface()
 
     def messageTextEditEnterHandler(self, event):
         if event.key() == 16777220:
@@ -223,7 +234,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
                 replyWidget = self.buildMsgWidget(reply)
                 messageWidget.replyMsgsLayout.addWidget(replyWidget)
 
-        self.lastMsgScrollPos = self.scrollArea.verticalScrollBar().value()
+        #self.lastMsgScrollPos = self.scrollArea.verticalScrollBar().value()
         if self.scrollArea.verticalScrollBar().value() == self.scrollArea.verticalScrollBar().maximum():
             messageWidget.scrollBottom = True
         else:
@@ -271,8 +282,15 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
                 chat.unread.clear()
                 chat.unread.setStyleSheet('QLabel { background-color: transparent}')
 
+    def getLastMsgPos(self, msgObject):
+        widgets = (self.chatsListLayout.itemAt(i).widget() for i in range(self.chatsListLayout.count())) 
+        for widget in widgets:
+            if widget.chatObject.id == msgObject.peerId:
+                self.lastMsgScrollPos = widget.y
+                print(self.lastMsgScrollPos)
 
-    def openChat(self, chatObject: vkapi.Chat, count, offset):
+
+    def getHistory(self, msgs, chatObject: vkapi.Chat, count, offset):
         if offset == 0:
             self.activeChatOffset = 0
             while self.msgsListLayout.count():
@@ -280,10 +298,14 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
                 if child.widget():
                     child.widget().deleteLater()
             self.markAsRead(chatObject)
-            
-        msgs = self.vkapi.getHistory(chatObject.id, count, offset)
+
+        firstMsg = True
         for msg in msgs:
             messageWidget = self.buildMsgWidget(msg)
+            if firstMsg:
+                messageWidget.getLastMsgScrollPos.connect(self.getLastMsgPos)
+                firstMsg = False
+
             self.msgsListLayout.insertWidget(0, messageWidget)
 
         self.chatAvatar.setPixmap(chatObject.image.scaled(32,32))
@@ -291,6 +313,27 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
 
         self.activeChat = chatObject.id
         self.adaptInterface()
+
+    def openChat(self, chatObject: vkapi.Chat, count, offset): 
+        if offset == 0:
+            self.activeChatOffset = 0
+            while self.msgsListLayout.count():
+                child = self.msgsListLayout.takeAt(0)
+                if child.widget():
+                    child.widget().deleteLater()
+            self.markAsRead(chatObject)       
+
+        self.chatAvatar.clear()
+        self.chatName.setText('Загрузка')
+    
+        args = {
+            'peerId':chatObject.id, 'count':count, 'offset':offset,
+            '_returnData':[chatObject,count,offset]                 #это надо чтобы getHistory имел данные из аргументов для продолжения
+        }
+
+        getHistoryAsync = asyncvkapi.AsyncVKAPI(self.vkapi, "getHistory", **args)
+        getHistoryAsync.signals.getHistory.connect(self.getHistory)
+        self.threadPool.start(getHistoryAsync)
 
     def sendMessage(self, text: str, peerId: int):
         params = {'message':text,'peer_id':peerId,'random_id':0}
@@ -367,6 +410,12 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
             self.openChat(self.vkapi.chatsCache[self.activeChat], 20, self.activeChatOffset)
             
             self.scrollArea.verticalScrollBar().rangeChanged.connect(self.moveMsgOffsetScroll)
+    
+    def logging(self, text):
+        if self.statusBar.isHidden():
+            self.statusBar.show()
+
+        self.statusLogsLabel.setText(text)
         
 
 app = QApplication(sys.argv)

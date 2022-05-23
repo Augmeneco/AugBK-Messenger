@@ -2,6 +2,7 @@ from enum import Enum
 from PyQt6 import QtCore, QtNetwork, QtGui
 
 import requests, os, time
+from datetime import datetime
 
 class AttachTypes(Enum):
     PHOTO = 1
@@ -50,6 +51,8 @@ class Chat:
 
 
 class VK_API(QtCore.QObject):
+    newDebugMessage = QtCore.pyqtSignal(str)
+
     def __init__(self, access_token):
         QtCore.QObject.__init__(self)
 
@@ -58,8 +61,12 @@ class VK_API(QtCore.QObject):
         self.usersCache = []
         self.chatsCache = {}
 
+    def logging(self, text):
+        print(datetime.today().strftime("%H:%M:%S")+' | '+text)
+        self.newDebugMessage.emit(text)
+
     def call(self, method, **parameters):
-        print('Call method '+method)
+        self.logging('Call method '+method)
         url = 'https://api.vk.com/method/' + method
         parameters['access_token'] = self.access_token
         if 'v' not in parameters:
@@ -70,14 +77,14 @@ class VK_API(QtCore.QObject):
         if 'error' in result:
             if result['error']['error_code'] == 6 or result['error']['error_code'] == 10:
                 time.sleep(2)
-                print('Forced sleep')
+                self.logging('Forced sleep')
                 return self.call(method, **parameters)
 
 
             error_string = 'VK ERROR #{}: "{}"\nPARAMS: {}'.format(result['error']['error_code'],
                                                         result['error']['error_msg'],
                                                         result['error']['request_params'])
-            print(error_string)
+            self.logging(error_string)
             raise Exception(error_string)
 
         return result['response']
@@ -95,12 +102,12 @@ class VK_API(QtCore.QObject):
         if fileType == AttachTypes.STICKER:
             path += 'stickers/'+name+'.png'
         if fileType == AttachTypes.THUMBNAIL:
-            path += 'thumbnails/'+name+'.png'
+            path += 'thumbnails/'+name+'.jpg'
         
         return self.loadPhoto(url, path)
 
     def loadPhoto(self, url, path) -> QtGui.QPixmap:
-        print('Loading photo '+path)
+        self.logging('Loading photo '+path)
         pixMap = QtGui.QPixmap()
 
         dirPath = '/'.join(('data/images/'+path).split('/')[:-1])
@@ -136,7 +143,7 @@ class VK_API(QtCore.QObject):
         response = self.call('messages.getConversations',
             offset=offset, count=count, extended=1
         )
-        print('Loading chats {}/{}'.format(offset, response['count']))
+        self.logging('Loading chats {}/{}'.format(offset, response['count']))
 
         chats = response['items']
         if len(chats) == 0: return result

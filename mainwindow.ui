@@ -117,8 +117,8 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>289</width>
-                 <height>500</height>
+                 <width>225</width>
+                 <height>468</height>
                 </rect>
                </property>
                <layout class="QVBoxLayout" name="verticalLayout_5">
@@ -295,8 +295,8 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>367</width>
-                 <height>248</height>
+                 <width>435</width>
+                 <height>232</height>
                 </rect>
                </property>
                <layout class="QVBoxLayout" name="verticalLayout_6">
@@ -511,6 +511,34 @@
         </item>
        </layout>
       </widget>
+     </widget>
+    </item>
+    <item>
+     <widget class="QWidget" name="statusBar" native="true">
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <property name="spacing">
+        <number>6</number>
+       </property>
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="QLabel" name="statusLogsLabel">
+         <property name="text">
+          <string>TextLabel</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </widget>
     </item>
    </layout>
