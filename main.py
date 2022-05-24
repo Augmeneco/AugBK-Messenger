@@ -14,7 +14,6 @@ import requests, re, sys, os, traceback, json, threading
 
 class MessageWidget(QtWidgets.QWidget, messagewidget.Ui_Form):
     moveScrollBottom = pyqtSignal(bool)
-    getLastMsgScrollPos = pyqtSignal(object)
 
     def __init__(self):
         super().__init__()
@@ -24,8 +23,7 @@ class MessageWidget(QtWidgets.QWidget, messagewidget.Ui_Form):
     #    pass
 
     def showEvent(self, event):
-        self.moveScrollBottom.emit(self.scrollBottom)
-        self.getLastMsgScrollPos.emit(self.msgObject)
+        pass
 
 class ClickableAttachWidget(QtWidgets.QLabel):
     attachClicked = pyqtSignal(object)
@@ -87,15 +85,15 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         self.vkapi = vkapi.VK_API(self.config['token'])
         self.vkapi.newDebugMessage.connect(self.logging)
 
+        self.lastSplitterPos = 300
         self.activeChat = 0
         self.activeChatOffset = 0
         self.compactMode = False
-        self.lastMsgScrollPos = 0
-        #self.scrollArea.verticalScrollBar().valueChanged.connect(self.msgScrollMoved)
+        self.newChatOpened = False
+
         self.sendMessageButton.clicked.connect(
             lambda: self.sendMessage(self.messageTextEdit.toPlainText(), self.activeChat))
         self.messageTextEdit.keyPressEvent = self.messageTextEditEnterHandler
-        
 
         QtWidgets.QScroller.grabGesture(self.scrollArea, QtWidgets.QScroller.ScrollerGestureType.LeftMouseButtonGesture)
         QtWidgets.QScroller.grabGesture(self.scrollArea_2, QtWidgets.QScroller.ScrollerGestureType.LeftMouseButtonGesture)
@@ -122,6 +120,13 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
 
         self.scrollArea.resizeEvent = self.scrollAreaResized
         self.splitter.splitterMoved.connect(self.splitterMoved)
+
+        self.scrollArea.verticalScrollBar().valueChanged.connect(self.scrollMsgsMoved)
+        self.scrollArea.verticalScrollBar().rangeChanged.connect(self.scrollMsgsChanged)
+        self.needScrollBottom = True
+        self.needOffsetScroll = False
+        self.lastMsgScrollPosition = 0
+        self.lastMsgScrollMaximum = 0
 
         self.backButtonCompact.clicked.connect(self.backButtonCompactClicked)
         self.backButtonCompact.hide()
@@ -198,7 +203,6 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         #messageWidget.text.setMinimumWidth(1)
         messageWidget.date.setText(datetime.utcfromtimestamp(msg.date).strftime("%H:%M:%S"))
         messageWidget.name.setText('<b>{} {}</b>'.format(msg.fromId.firstName, msg.fromId.lastName))
-        messageWidget.moveScrollBottom.connect(self.moveMsgScroll)
         
         if len(msg.attachments) == 0:
             messageWidget.imagesWidget.hide()
@@ -233,12 +237,6 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
             for reply in msg.reply:
                 replyWidget = self.buildMsgWidget(reply)
                 messageWidget.replyMsgsLayout.addWidget(replyWidget)
-
-        #self.lastMsgScrollPos = self.scrollArea.verticalScrollBar().value()
-        if self.scrollArea.verticalScrollBar().value() == self.scrollArea.verticalScrollBar().maximum():
-            messageWidget.scrollBottom = True
-        else:
-            messageWidget.scrollBottom = False
 
         return messageWidget
 
@@ -282,14 +280,6 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
                 chat.unread.clear()
                 chat.unread.setStyleSheet('QLabel { background-color: transparent}')
 
-    def getLastMsgPos(self, msgObject):
-        widgets = (self.chatsListLayout.itemAt(i).widget() for i in range(self.chatsListLayout.count())) 
-        for widget in widgets:
-            if widget.chatObject.id == msgObject.peerId:
-                self.lastMsgScrollPos = widget.y
-                print(self.lastMsgScrollPos)
-
-
     def getHistory(self, msgs, chatObject: vkapi.Chat, count, offset):
         if offset == 0:
             self.activeChatOffset = 0
@@ -299,23 +289,25 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
                     child.widget().deleteLater()
             self.markAsRead(chatObject)
 
-        firstMsg = True
         for msg in msgs:
             messageWidget = self.buildMsgWidget(msg)
-            if firstMsg:
-                messageWidget.getLastMsgScrollPos.connect(self.getLastMsgPos)
-                firstMsg = False
 
             self.msgsListLayout.insertWidget(0, messageWidget)
 
         self.chatAvatar.setPixmap(chatObject.image.scaled(32,32))
         self.chatName.setText(chatObject.name)
 
+        if self.scrollArea.verticalScrollBar().value() != self.scrollArea.verticalScrollBar().maximum():
+            self.needScrollBottom = False
+        else:
+            self.needScrollBottom = True
+
         self.activeChat = chatObject.id
         self.adaptInterface()
 
     def openChat(self, chatObject: vkapi.Chat, count, offset): 
         if offset == 0:
+            self.newChatOpened = True
             self.activeChatOffset = 0
             while self.msgsListLayout.count():
                 child = self.msgsListLayout.takeAt(0)
@@ -360,6 +352,31 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
             self.compactMode = False
         
         self.adaptInterface()
+
+    def scrollMsgsMoved(self, pos):
+        self.lastMsgScrollPosition = pos
+        if pos == 0 and self.newChatOpened == False:
+            self.activeChatOffset += 20
+            self.needOffsetScroll = True
+            self.openChat(self.vkapi.chatsCache[self.activeChat], 20, self.activeChatOffset)
+
+        if pos != 0 and pos == self.scrollArea.verticalScrollBar().maximum() and self.newChatOpened == True:
+            self.newChatOpened = False
+
+    def scrollMsgsChanged(self):
+        if self.needScrollBottom:
+            self.scrollArea.verticalScrollBar().setValue(
+                self.scrollArea.verticalScrollBar().maximum()
+            )
+            self.needScrollBottom = False
+
+        if self.needOffsetScroll:
+            self.lastMsgScrollPosition = self.scrollArea.verticalScrollBar().maximum() - self.lastMsgScrollMaximum
+            self.scrollArea.verticalScrollBar().setValue(self.lastMsgScrollPosition)
+
+            self.needOffsetScroll = False
+
+        self.lastMsgScrollMaximum = self.scrollArea.verticalScrollBar().maximum()
             
     def adaptInterface(self):
         if self.compactMode:
@@ -370,7 +387,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
                 self.splitter.moveSplitter(self.scrollArea_2.width()+self.scrollArea.width(), 1)
         else:
             self.backButtonCompact.hide()
-            self.splitter.moveSplitter(300,1)
+            self.splitter.moveSplitter(self.lastSplitterPos,1)
 
     def backButtonCompactClicked(self):
         self.activeChat = 0
@@ -386,30 +403,8 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         self.msgsListWidget.setFixedWidth(self.scrollArea.width()-24)
 
     def splitterMoved(self, pos, index):
+        self.lastSplitterPos = pos
         self.resizeGuiElements()
-    
-    def moveMsgScroll(self,bottom):
-        if bottom:
-            self.scrollArea.verticalScrollBar().rangeChanged.connect(lambda: self.scrollArea.verticalScrollBar().setValue(self.scrollArea.verticalScrollBar().maximum()))
-        else:
-            self.scrollArea.verticalScrollBar().rangeChanged.connect(lambda: self.scrollArea.verticalScrollBar().setValue(self.lastMsgScrollPos))
-
-    def moveMsgOffsetScroll(self, min,max):
-        self.lastMsgScrollPos = max-self.lastMsgScrollOffset
-
-        self.scrollArea.verticalScrollBar().setValue(
-            self.lastMsgScrollPos
-        )
-
-    def msgScrollMoved(self, event):
-        if self.scrollArea.verticalScrollBar().value() == 0:
-            self.activeChatOffset += 20
-            
-            self.lastMsgScrollOffset = self.scrollArea.verticalScrollBar().maximum()
-            self.scrollArea.verticalScrollBar().setValue(self.scrollArea.verticalScrollBar().maximum())
-            self.openChat(self.vkapi.chatsCache[self.activeChat], 20, self.activeChatOffset)
-            
-            self.scrollArea.verticalScrollBar().rangeChanged.connect(self.moveMsgOffsetScroll)
     
     def logging(self, text):
         if self.statusBar.isHidden():
