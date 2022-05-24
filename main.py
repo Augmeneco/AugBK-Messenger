@@ -63,6 +63,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         self.threadPool = QThreadPool()
         self.initComplete = False
         self.compactMode = False
+        self.lastSplitterPos = 300
         if not os.path.exists('data/config.json'):
             self.stackedWidget.setCurrentIndex(1)
             self.authByTokenButton.clicked.connect(self.authByToken)
@@ -85,18 +86,24 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         self.vkapi = vkapi.VK_API(self.config['token'])
         self.vkapi.newDebugMessage.connect(self.logging)
 
-        self.lastSplitterPos = 300
         self.activeChat = 0
         self.activeChatOffset = 0
-        self.compactMode = False
         self.newChatOpened = False
 
         self.sendMessageButton.clicked.connect(
             lambda: self.sendMessage(self.messageTextEdit.toPlainText(), self.activeChat))
         self.messageTextEdit.keyPressEvent = self.messageTextEditEnterHandler
 
-        QtWidgets.QScroller.grabGesture(self.scrollArea, QtWidgets.QScroller.ScrollerGestureType.LeftMouseButtonGesture)
-        QtWidgets.QScroller.grabGesture(self.scrollArea_2, QtWidgets.QScroller.ScrollerGestureType.LeftMouseButtonGesture)
+        QtWidgets.QScroller.grabGesture(self.scrollArea.viewport(), QtWidgets.QScroller.ScrollerGestureType.LeftMouseButtonGesture)
+        QtWidgets.QScroller.grabGesture(self.scrollArea_2.viewport(), QtWidgets.QScroller.ScrollerGestureType.LeftMouseButtonGesture)
+
+        #отключение кинетической энерции в тачевом скролле
+
+        #for scrollObj in [self.scrollArea, self.scrollArea_2]:
+        #    scrollerProperties = QtWidgets.QScroller.scroller(scrollObj).scrollerProperties()
+        #    scrollerProperties.setScrollMetric(QtWidgets.QScrollerProperties.ScrollMetric.MaximumVelocity, 0)
+        #    scrollerProperties.setScrollMetric(QtWidgets.QScrollerProperties.ScrollMetric.MinimumVelocity, 0)
+        #    QtWidgets.QScroller.scroller(scrollObj).setScrollerProperties(scrollerProperties)
 
         self.menuButton.setIcon(QIcon('data/icons/navigation-16-filled.svg'))
         self.menuButton.setIconSize(QSize(32,32))

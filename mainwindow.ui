@@ -117,8 +117,8 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>225</width>
-                 <height>468</height>
+                 <width>222</width>
+                 <height>481</height>
                 </rect>
                </property>
                <layout class="QVBoxLayout" name="verticalLayout_5">
@@ -295,8 +295,8 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>435</width>
-                 <height>232</height>
+                 <width>434</width>
+                 <height>239</height>
                 </rect>
                </property>
                <layout class="QVBoxLayout" name="verticalLayout_6">
@@ -534,7 +534,7 @@
        <item>
         <widget class="QLabel" name="statusLogsLabel">
          <property name="text">
-          <string>TextLabel</string>
+          <string>Debug</string>
          </property>
         </widget>
        </item>
