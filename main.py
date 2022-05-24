@@ -414,8 +414,10 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         self.msgsListWidget.setFixedWidth(self.scrollArea.width()-24)
 
     def splitterMoved(self, pos, index):
-        self.lastSplitterPos = pos
+        if not self.compactMode:
+            self.lastSplitterPos = pos
         self.resizeGuiElements()
+        self.statusLogsLabel.setMaximumWidth(self.width())
     
     def logging(self, text):
         if self.statusBar.isHidden():
