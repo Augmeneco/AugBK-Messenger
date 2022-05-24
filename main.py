@@ -391,6 +391,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
             
     def adaptInterface(self):
         if self.compactMode:
+            self.statusBar.hide()
             self.backButtonCompact.show()
             if self.activeChat != 0:
                 self.splitter.moveSplitter(0,1)
@@ -398,6 +399,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
                 self.splitter.moveSplitter(self.scrollArea_2.width()+self.scrollArea.width(), 1)
         else:
             self.backButtonCompact.hide()
+            self.statusBar.show()
             self.splitter.moveSplitter(self.lastSplitterPos,1)
 
     def backButtonCompactClicked(self):
@@ -417,12 +419,8 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         if not self.compactMode:
             self.lastSplitterPos = pos
         self.resizeGuiElements()
-        self.statusLogsLabel.setMaximumWidth(self.width())
     
     def logging(self, text):
-        if self.statusBar.isHidden():
-            self.statusBar.show()
-
         self.statusLogsLabel.setText(text)
         
 
