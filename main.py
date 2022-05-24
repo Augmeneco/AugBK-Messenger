@@ -335,6 +335,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         self.threadPool.start(getHistoryAsync)
 
     def sendMessage(self, text: str, peerId: int):
+        self.needScrollBottom = True
         params = {'message':text,'peer_id':peerId,'random_id':0}
         threading.Thread(target=self.vkapi.call, args=("messages.send",), kwargs=params).start()
         
@@ -347,6 +348,9 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         if self.activeChat == msg.peerId:
             messageWidget = self.buildMsgWidget(msg)
             self.msgsListLayout.addWidget(messageWidget)
+            
+            if self.scrollArea.verticalScrollBar().value() == self.scrollArea.verticalScrollBar().maximum():
+                self.needScrollBottom = True
         self.updateChatsList(msg)
 
     def resizeEvent(self, event):
