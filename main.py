@@ -212,13 +212,17 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         self.stackedWidget.setCurrentIndex(0)
         self.adaptInterface()
 
+    def deleteMsgAttach(self, event): 
+        self.replyMsgsList.clear()
+        self.attachMenuWidget.hide()
+        del self.sendMessageParams['reply_to'] 
+
     def buildCompactMsgWidget(self, msg: vkapi.Msg):
         messageWidget = MessageWidget()
         messageWidget.msgObject = msg
         messageWidget.avatar.clear()
-        messageWidget.text.setText(msg.text.replace('\n',' ')[:32]+'...')
+        messageWidget.text.setText(msg.text.replace('\n',' ')[:24]+'...')
         messageWidget.text.setWordWrap(False)
-        messageWidget.text.setMaximumWidth(self.scrollArea.width()-32)
         messageWidget.name.setText('<b>{} {}</b>'.format(msg.fromId.firstName, msg.fromId.lastName))
         
         messageWidget.imagesWidget.deleteLater()
@@ -227,6 +231,9 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         
         messageWidget.avatar.setPixmap(QIcon('data/icons/reply-16-filled.svg').pixmap(QSize(32,32)))
         messageWidget.avatar.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignCenter)
+
+        messageWidget.closeAttachButton.setPixmap(QIcon('data/icons/close-16-filled.svg').pixmap(QSize(32,32)))
+        messageWidget.closeAttachButton.mousePressEvent = self.deleteMsgAttach
 
         messageWidget.frame.setStyleSheet('background-color: transparent')
 
@@ -400,14 +407,13 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         self.chatAvatar.clear()
         self.chatName.setText('Загрузка')
 
-        if self.activeChat != 0:
-            if not self.attachMenuWidget.isHidden():
-                self.attachMenuWidget.hide()
-                self.replyMsgsList.clear()
-                del self.sendMessageParams['reply_to']
-            if self.chatMenuStacked.currentIndex() == 1:
-                self.chatMenuStacked.setCurrentIndex(0)
-                self.replyMsgsList.clear()
+        if not self.attachMenuWidget.isHidden():
+            self.attachMenuWidget.hide()
+            self.replyMsgsList.clear()
+            del self.sendMessageParams['reply_to']
+        if self.chatMenuStacked.currentIndex() == 1:
+            self.chatMenuStacked.setCurrentIndex(0)
+            self.replyMsgsList.clear()
 
         args = {
             'peerId':chatObject.id, 'count':count, 'offset':offset,
