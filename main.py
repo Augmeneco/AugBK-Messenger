@@ -14,16 +14,20 @@ import requests, re, sys, os, traceback, json, threading
 
 class MessageWidget(QtWidgets.QWidget, messagewidget.Ui_Form):
     moveScrollBottom = pyqtSignal(bool)
+    messageClicked = pyqtSignal(object)
 
     def __init__(self):
         super().__init__()
         self.setupUi(self)
 
+    def mousePressEvent(self, event):
+        self.messageClicked.emit(self)
+
     #def resizeEvent(self, event):
     #    pass
 
-    def showEvent(self, event):
-        pass
+    #def showEvent(self, event):
+    #    pass
 
 class ClickableAttachWidget(QtWidgets.QLabel):
     attachClicked = pyqtSignal(object)
@@ -91,7 +95,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         self.newChatOpened = False
 
         self.sendMessageButton.clicked.connect(
-            lambda: self.sendMessage(self.messageTextEdit.toPlainText(), self.activeChat))
+            lambda: self.sendMessage(self.messageTextEdit.toPlainText(), self.activeChat, **self.sendMessageParams))
         self.messageTextEdit.keyPressEvent = self.messageTextEditEnterHandler
 
         QtWidgets.QScroller.grabGesture(self.scrollArea.viewport(), QtWidgets.QScroller.ScrollerGestureType.LeftMouseButtonGesture)
@@ -135,6 +139,13 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         self.lastMsgScrollPosition = 0
         self.lastMsgScrollMaximum = 0
 
+        self.replyMsgsList = []
+        self.replyMsgButton.clicked.connect(self.replyMsgButtonClicked)
+
+        self.sendMessageParams = {}
+
+        self.attachMenuWidget.hide()
+
         self.backButtonCompact.clicked.connect(self.backButtonCompactClicked)
         self.backButtonCompact.hide()
 
@@ -176,7 +187,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
 
     def messageTextEditEnterHandler(self, event):
         if event.key() == 16777220:
-            self.sendMessage(self.messageTextEdit.toPlainText(), self.activeChat)
+            self.sendMessage(self.messageTextEdit.toPlainText(), self.activeChat, **self.sendMessageParams)
         else:
             QtWidgets.QPlainTextEdit.keyPressEvent(self.messageTextEdit, event)
 
@@ -201,6 +212,26 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         self.stackedWidget.setCurrentIndex(0)
         self.adaptInterface()
 
+    def buildCompactMsgWidget(self, msg: vkapi.Msg):
+        messageWidget = MessageWidget()
+        messageWidget.msgObject = msg
+        messageWidget.avatar.clear()
+        messageWidget.text.setText(msg.text.replace('\n',' ')[:32]+'...')
+        messageWidget.text.setWordWrap(False)
+        messageWidget.text.setMaximumWidth(self.scrollArea.width()-32)
+        messageWidget.name.setText('<b>{} {}</b>'.format(msg.fromId.firstName, msg.fromId.lastName))
+        
+        messageWidget.imagesWidget.deleteLater()
+        messageWidget.replyMsgsWidget.deleteLater()
+        messageWidget.date.deleteLater()
+        
+        messageWidget.avatar.setPixmap(QIcon('data/icons/reply-16-filled.svg').pixmap(QSize(32,32)))
+        messageWidget.avatar.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignCenter)
+
+        messageWidget.frame.setStyleSheet('background-color: transparent')
+
+        return messageWidget
+
     def buildMsgWidget(self, msg: vkapi.Msg):
         messageWidget = MessageWidget()
         messageWidget.msgObject = msg
@@ -210,6 +241,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         #messageWidget.text.setMinimumWidth(1)
         messageWidget.date.setText(datetime.utcfromtimestamp(msg.date).strftime("%H:%M:%S"))
         messageWidget.name.setText('<b>{} {}</b>'.format(msg.fromId.firstName, msg.fromId.lastName))
+        messageWidget.messageClicked.connect(self.addReplyMsg)
         
         if len(msg.attachments) == 0:
             messageWidget.imagesWidget.hide()
@@ -242,6 +274,8 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
             messageWidget.replyMsgsWidget.hide()
         else:
             for reply in msg.reply:
+                reply.isReply = True
+                reply.replyFrom = messageWidget
                 replyWidget = self.buildMsgWidget(reply)
                 messageWidget.replyMsgsLayout.addWidget(replyWidget)
 
@@ -276,6 +310,47 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
 
                 self.chatsListLayout.insertWidget(0, chat)
                 break
+
+    def replyMsgButtonClicked(self, event): 
+        if len(self.replyMsgsList) == 1:
+            self.sendMessageParams['reply_to'] = self.replyMsgsList[0].msgObject.id
+            self.buildAttachMenu(self.buildCompactMsgWidget(self.replyMsgsList[0].msgObject), vkapi.AttachTypes.REPLY)
+
+            self.replyMsgsList[0].frame.setStyleSheet('background-color: white')
+            self.chatMenuStacked.setCurrentIndex(0)
+            self.replyMsgsList.clear()
+
+    def addReplyMsg(self, msg: MessageWidget):
+        if msg.msgObject.isReply:
+            msg = msg.msgObject.replyFrom
+        
+        if msg not in self.replyMsgsList:
+            self.replyMsgsList.append(msg)
+            self.selectedMsgsCountLabel.setText('Выделено: '+str(len(self.replyMsgsList)))
+            self.chatMenuStacked.setCurrentIndex(1)
+
+            msg.frame.setStyleSheet('background-color: #e4e6e9')
+        else:
+            del self.replyMsgsList[self.replyMsgsList.index(msg)]
+            self.selectedMsgsCountLabel.setText(str(len(self.replyMsgsList)))
+
+            if len(self.replyMsgsList) == 0:
+                self.selectedMsgsCountLabel.clear()
+                self.chatMenuStacked.setCurrentIndex(0)
+
+            msg.frame.setStyleSheet('background-color: white')
+
+    def buildAttachMenu(self, attach, attachType: vkapi.AttachTypes):
+        self.attachMenuWidget.show()
+        while self.attachMenuLayout.count():
+            child = self.attachMenuLayout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+
+        if attachType == vkapi.AttachTypes.REPLY:
+            self.attachMenuLayout.addWidget(
+                attach
+            )
     
     def markAsRead(self, chatObject):
         threading.Thread(target=self.vkapi.call, args=('messages.markAsRead',), kwargs={'peer_id':chatObject.id}).start()
@@ -324,7 +399,16 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
 
         self.chatAvatar.clear()
         self.chatName.setText('Загрузка')
-    
+
+        if self.activeChat != 0:
+            if not self.attachMenuWidget.isHidden():
+                self.attachMenuWidget.hide()
+                self.replyMsgsList.clear()
+                del self.sendMessageParams['reply_to']
+            if self.chatMenuStacked.currentIndex() == 1:
+                self.chatMenuStacked.setCurrentIndex(0)
+                self.replyMsgsList.clear()
+
         args = {
             'peerId':chatObject.id, 'count':count, 'offset':offset,
             '_returnData':[chatObject,count,offset]                 #это надо чтобы getHistory имел данные из аргументов для продолжения
@@ -334,12 +418,17 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         getHistoryAsync.signals.getHistory.connect(self.getHistory)
         self.threadPool.start(getHistoryAsync)
 
-    def sendMessage(self, text: str, peerId: int):
+    def sendMessage(self, text: str, peerId: int, **args):
         self.needScrollBottom = True
         params = {'message':text,'peer_id':peerId,'random_id':0}
+        params.update(args)
+
         threading.Thread(target=self.vkapi.call, args=("messages.send",), kwargs=params).start()
         
         self.messageTextEdit.clear()
+        if not self.attachMenuWidget.isHidden():
+            self.attachMenuWidget.hide()
+            del self.sendMessageParams['reply_to'] 
 
     def scrollAreaResized(self, event):
         pass

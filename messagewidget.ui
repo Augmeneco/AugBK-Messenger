@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>572</width>
-    <height>80</height>
+    <width>294</width>
+    <height>85</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -156,7 +156,7 @@ border: 1px solid rgb(221, 221, 221); }</string>
            <string notr="true"/>
           </property>
           <property name="text">
-           <string>wodopwofjeopfjoewpjfopewjfjoewjfoewjfopweofjewofjowejfojweopfjewopjfoewjofewf</string>
+           <string>text</string>
           </property>
           <property name="scaledContents">
            <bool>false</bool>

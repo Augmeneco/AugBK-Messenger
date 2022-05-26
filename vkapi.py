@@ -13,6 +13,8 @@ class AttachTypes(Enum):
     STICKER = 6 
     THUMBNAIL = 7
     GIF = 8
+    REPLY = 9
+    FORWARD = 10
 
 class PhotoSize(Enum):
     SMALL = 1
@@ -40,6 +42,7 @@ class Msg:
     reply: list
     attachments: list
     deleted = False
+    isReply = False
 
 class Chat:
     id: int
