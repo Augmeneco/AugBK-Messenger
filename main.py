@@ -339,7 +339,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
             msg.frame.setStyleSheet('background-color: #e4e6e9')
         else:
             del self.replyMsgsList[self.replyMsgsList.index(msg)]
-            self.selectedMsgsCountLabel.setText(str(len(self.replyMsgsList)))
+            self.selectedMsgsCountLabel.setText('Выделено: '+str(len(self.replyMsgsList)))
 
             if len(self.replyMsgsList) == 0:
                 self.selectedMsgsCountLabel.clear()
@@ -392,6 +392,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
             self.needScrollBottom = True
 
         self.activeChat = chatObject.id
+        self.messageTextEdit.setFocus()
         self.adaptInterface()
 
     def openChat(self, chatObject: vkapi.Chat, count, offset): 
@@ -517,6 +518,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
     
     def logging(self, text):
         self.statusLogsLabel.setText(text)
+        self.statusLogsLabel.setMaximumWidth(self.width())
         
 
 app = QApplication(sys.argv)

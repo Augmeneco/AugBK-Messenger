@@ -55,6 +55,7 @@ class Chat:
 
 class VK_API(QtCore.QObject):
     newDebugMessage = QtCore.pyqtSignal(str)
+    networkError = QtCore.pyqtSignal(str)
 
     def __init__(self, access_token):
         QtCore.QObject.__init__(self)
@@ -74,8 +75,16 @@ class VK_API(QtCore.QObject):
         parameters['access_token'] = self.access_token
         if 'v' not in parameters:
             parameters['v'] = self.version
-
-        result = requests.post(url, params=parameters).json()
+        
+        while True:
+            try:
+                result = requests.post(url, params=parameters).json()
+                break
+            except Exception as E:
+                self.logging(str(E))
+                self.networkError.emit(str(E))
+                time.sleep(2)
+                continue
 
         if 'error' in result:
             if result['error']['error_code'] == 6 or result['error']['error_code'] == 10:
@@ -118,6 +127,7 @@ class VK_API(QtCore.QObject):
             os.makedirs(dirPath)
 
         if not os.path.exists('data/images/'+path):
+            print('here')
             response = requests.get(url)
             file = open('data/images/'+path,'wb')
             file.write(response.content)
