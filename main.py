@@ -173,7 +173,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
             if len(text) == 24: text += '...'
 
             chatWidget.text.setText(text)
-            chatWidget.time.setText(datetime.utcfromtimestamp(chat.previewMsg.date).strftime("%H:%M:%S"))
+            chatWidget.time.setText(datetime.fromtimestamp(chat.previewMsg.date).strftime("%H:%M:%S"))
 
             if chat.unread != 0:
                 chatWidget.unread.setText('<b>'+str(chat.unread)+'</b>')
@@ -244,9 +244,9 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         messageWidget.msgObject = msg
         messageWidget.avatar.clear()
         messageWidget.avatar.setPixmap(msg.fromId.image)
-        messageWidget.text.setText(msg.text)
+        messageWidget.text.setText(self.vkapi.replaceEmoji(msg.text))
         #messageWidget.text.setMinimumWidth(1)
-        messageWidget.date.setText(datetime.utcfromtimestamp(msg.date).strftime("%H:%M:%S"))
+        messageWidget.date.setText(datetime.fromtimestamp(msg.date).strftime("%H:%M:%S"))
         messageWidget.name.setText('<b>{} {}</b>'.format(msg.fromId.firstName, msg.fromId.lastName))
         messageWidget.messageClicked.connect(self.addReplyMsg)
         
@@ -306,7 +306,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
                 if len(text) == 24: text += '...'
 
                 chat.text.setText(text)
-                chat.time.setText(datetime.utcfromtimestamp(chat.chatObject.previewMsg.date).strftime("%H:%M:%S"))
+                chat.time.setText(datetime.fromtimestamp(chat.chatObject.previewMsg.date).strftime("%H:%M:%S"))
 
                 if chat.chatObject.unread != 0:
                     chat.unread.setText('<b>'+str(chat.chatObject.unread)+'</b>')
