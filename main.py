@@ -124,12 +124,15 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         self.sendMessageButton.setIcon(QIcon('data/icons/send-16-filled.svg'))
         self.sendMessageButton.setIconSize(QSize(32,32))
 
+        self.emojiButton.setIcon(QIcon('data/icons/emoji-16-regular.svg'))
+        self.emojiButton.setIconSize(QSize(32,32))
+
         getChatsAsync = asyncvkapi.AsyncVKAPI(self.vkapi, 'getChats', count=100)
         getChatsAsync.signals.getChats.connect(self.getChats)
         self.threadPool.start(getChatsAsync)
         self.chatName.setText('Загрузка')
 
-        self.scrollArea.resizeEvent = self.scrollAreaResized
+        #self.scrollArea.resizeEvent = self.scrollAreaResized
         self.splitter.splitterMoved.connect(self.splitterMoved)
 
         self.scrollArea.verticalScrollBar().valueChanged.connect(self.scrollMsgsMoved)
@@ -172,7 +175,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
             text = '{}: {}'.format(chat.previewMsg.fromId.firstName, chat.previewMsg.text)[:24]
             if len(text) == 24: text += '...'
 
-            chatWidget.text.setText(text)
+            chatWidget.text.setText(self.vkapi.improveMsgText(text))
             chatWidget.time.setText(datetime.fromtimestamp(chat.previewMsg.date).strftime("%H:%M:%S"))
 
             if chat.unread != 0:
@@ -244,7 +247,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         messageWidget.msgObject = msg
         messageWidget.avatar.clear()
         messageWidget.avatar.setPixmap(msg.fromId.image)
-        messageWidget.text.setText(self.vkapi.replaceEmoji(msg.text))
+        messageWidget.text.setText(self.vkapi.improveMsgText(msg.text))
         #messageWidget.text.setMinimumWidth(1)
         messageWidget.date.setText(datetime.fromtimestamp(msg.date).strftime("%H:%M:%S"))
         messageWidget.name.setText('<b>{} {}</b>'.format(msg.fromId.firstName, msg.fromId.lastName))
@@ -305,7 +308,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
                 text = '{}: {}'.format(chat.chatObject.previewMsg.fromId.firstName, chat.chatObject.previewMsg.text)[:24]
                 if len(text) == 24: text += '...'
 
-                chat.text.setText(text)
+                chat.text.setText(self.vkapi.improveMsgText(text))
                 chat.time.setText(datetime.fromtimestamp(chat.chatObject.previewMsg.date).strftime("%H:%M:%S"))
 
                 if chat.chatObject.unread != 0:
@@ -405,6 +408,8 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
                     child.widget().deleteLater()
             self.markAsRead(chatObject)       
 
+        self.activeChat = chatObject.id
+        self.adaptInterface()
         self.chatAvatar.clear()
         self.chatName.setText('Загрузка')
 
@@ -426,6 +431,8 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         self.threadPool.start(getHistoryAsync)
 
     def sendMessage(self, text: str, peerId: int, **args):
+        if text == '': return
+        
         self.needScrollBottom = True
         params = {'message':text,'peer_id':peerId,'random_id':0}
         params.update(args)
@@ -437,8 +444,8 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
             self.attachMenuWidget.hide()
             del self.sendMessageParams['reply_to'] 
 
-    def scrollAreaResized(self, event):
-        pass
+    #def scrollAreaResized(self, event):
+    #    pass
 
     def newMsgEvent(self, msg: vkapi.Msg):
         if self.activeChat == msg.peerId:
@@ -450,14 +457,14 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         self.updateChatsList(msg)
 
     def resizeEvent(self, event):
-        if not self.initComplete: return
-        self.resizeGuiElements()
-
         if self.width() < self.height():
             self.compactMode = True
         else:
             self.compactMode = False
-        
+
+        if not self.initComplete: return
+
+        self.resizeGuiElements()
         self.adaptInterface()
 
     def scrollMsgsMoved(self, pos):

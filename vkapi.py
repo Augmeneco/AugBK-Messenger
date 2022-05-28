@@ -65,6 +65,9 @@ class VK_API(QtCore.QObject):
         self.usersCache = []
         self.chatsCache = {}
 
+        self.requests = ProtectedRequests()
+        self.requests.logging.connect(self.logging)
+
     def logging(self, text):
         print(datetime.today().strftime("%H:%M:%S")+' | '+text)
         self.newDebugMessage.emit(text)
@@ -75,16 +78,9 @@ class VK_API(QtCore.QObject):
         parameters['access_token'] = self.access_token
         if 'v' not in parameters:
             parameters['v'] = self.version
-        
-        while True:
-            try:
-                result = requests.post(url, params=parameters).json()
-                break
-            except Exception as E:
-                self.logging(str(E))
-                self.networkError.emit(str(E))
-                time.sleep(2)
-                continue
+    
+            result = self.requests.post(url, params=parameters).json()
+
 
         if 'error' in result:
             if result['error']['error_code'] == 6 or result['error']['error_code'] == 10:
@@ -127,7 +123,7 @@ class VK_API(QtCore.QObject):
             os.makedirs(dirPath)
 
         if not os.path.exists('data/images/'+path):
-            response = requests.get(url)
+            response = self.requests.get(url)
             file = open('data/images/'+path,'wb')
             file.write(response.content)
             file.close()
@@ -136,8 +132,9 @@ class VK_API(QtCore.QObject):
             pixMap.load('data/images/'+path)
             return pixMap
         
-    def replaceEmoji(self, text):
-        
+    def improveMsgText(self, text):
+        text = text.replace('<','&lt;').replace('>','&gt;')
+
         emojiRegex = re.compile("["
                                 u"\U0001F600-\U0001F64F"  # emoticons
                                 u"\U0001F300-\U0001F5FF"  # symbols & pictographs
@@ -163,13 +160,14 @@ class VK_API(QtCore.QObject):
             outputText = ''
             for char in text:
                 if emojiRegex.match(char):
-                    self.loadPhoto(
-                        'https://vk.com/emoji/e/{}.png'.format(char.encode('utf-8').hex()),
-                        'emoji/'+char.encode('utf-8').hex()+'.png',
-                        noPixMap=True
-                    )
-                    outputText += '<img src="data/images/emoji/{}.png" alt="{}">'.format(char.encode('utf-8').hex(),char)
-                    print(outputText)
+                    try:
+                        self.loadPhoto(
+                            'https://vk.com/emoji/e/{}.png'.format(char.encode('utf-8').hex()),
+                            'emoji/'+char.encode('utf-8').hex()+'.png',
+                            noPixMap=True
+                        )
+                        outputText += '<img src="data/images/emoji/{}.png" alt="{}">'.format(char.encode('utf-8').hex(),char)
+                    except: outputText += char
                 else:
                     outputText += char
             return outputText
@@ -492,6 +490,7 @@ class LongPoll(QtCore.QObject):
     def __init__(self, vkapi: VK_API):
         QtCore.QObject.__init__(self)
         self.vkapi = vkapi
+        self.requests = ProtectedRequests()
 
     def updateLP(self):
         LPData = self.vkapi.call('messages.getLongPollServer', lp_version=3)
@@ -503,7 +502,7 @@ class LongPoll(QtCore.QObject):
         self.updateLP()
 
         while(True):
-            response = requests.get('https://{}?act=a_check&key={}&ts={}&wait=25&mode=2&version=3'.format(
+            response = self.requests.get('https://{}?act=a_check&key={}&ts={}&wait=25&mode=2&version=3'.format(
                 self.LPServer, self.LPKey, self.LPts
             )).json()
 
@@ -526,3 +525,27 @@ class LongPoll(QtCore.QObject):
                     msg = self.vkapi.parseDeletedMsg(event)
 
                 self.newMsg.emit(msg)
+
+class ProtectedRequests(QtCore.QObject):
+    networkError = QtCore.pyqtSignal(object)
+    logging = QtCore.pyqtSignal(str)
+
+    def __init__(self):
+        self.requestsSession = requests.Session()
+        QtCore.QObject.__init__(self)
+
+    def __getattr__(self, name):
+        def method(*args, **kwargs):
+            while True:
+                try:
+                    result = getattr(self.requestsSession, name)(*args, **kwargs)
+                    break
+                except Exception as E:
+                    self.logging.emit(str(E))
+                    self.networkError.emit(str(E))
+
+                    time.sleep(2)
+                    continue
+
+            return result
+        return method

@@ -523,6 +523,26 @@
                 </property>
                </widget>
               </item>
+              <item>
+               <widget class="QPushButton" name="emojiButton">
+                <property name="text">
+                 <string/>
+                </property>
+                <property name="icon">
+                 <iconset>
+                  <normaloff>data/icons/emoji-16-regular.svg</normaloff>data/icons/emoji-16-regular.svg</iconset>
+                </property>
+                <property name="iconSize">
+                 <size>
+                  <width>32</width>
+                  <height>32</height>
+                 </size>
+                </property>
+                <property name="flat">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
              </layout>
             </item>
            </layout>
