@@ -200,10 +200,10 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
 
         if imageAttach.width() >= self.imagePreviewWindow.width():
             sizeDiff = imageAttach.width() - self.imagePreviewWindow.width()
-            imageAttach = imageAttach.scaledToWidth(imageAttach.width()-sizeDiff)
+            imageAttach = imageAttach.scaledToWidth(imageAttach.width()-sizeDiff, mode=Qt.TransformationMode.SmoothTransformation)
         if imageAttach.height() >= self.imagePreviewWindow.height():
             sizeDiff = imageAttach.height() - self.imagePreviewWindow.height()
-            imageAttach = imageAttach.scaledToHeight(imageAttach.height()-sizeDiff)
+            imageAttach = imageAttach.scaledToHeight(imageAttach.height()-sizeDiff, mode=Qt.TransformationMode.SmoothTransformation)
   
         self.imagePreviewWidget.setPixmap(
             imageAttach
@@ -262,13 +262,13 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
             for attach in msg.attachments: 
                 if attach.attachType == vkapi.AttachTypes.STICKER:
                     messageWidget.text.clear()
-                    messageWidget.text.setPixmap(attach.preview.scaled(128,128))
+                    messageWidget.text.setPixmap(attach.preview.scaled(128,128, transformMode=Qt.TransformationMode.SmoothTransformation))
                     messageWidget.text.setMinimumSize(128,128)
                     
                 if attach.attachType == vkapi.AttachTypes.PHOTO:
                     hasImageAttaches = True
                     image = ClickableAttachWidget()
-                    image.setPixmap(attach.preview.scaledToWidth(220))
+                    image.setPixmap(attach.preview.scaledToWidth(220, mode=Qt.TransformationMode.SmoothTransformation))
                     image.attachObject = attach
                     image.attachClicked.connect(self.openImageViewer)
 
@@ -386,7 +386,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
 
             self.msgsListLayout.insertWidget(0, messageWidget)
 
-        self.chatAvatar.setPixmap(chatObject.image.scaled(32,32))
+        self.chatAvatar.setPixmap(chatObject.image.scaled(32,32, transformMode=Qt.TransformationMode.SmoothTransformation))
         self.chatName.setText(chatObject.name)
 
         if self.scrollArea.verticalScrollBar().value() != self.scrollArea.verticalScrollBar().maximum():

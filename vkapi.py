@@ -174,9 +174,18 @@ class VK_API(QtCore.QObject):
         else: return text
 
     def getPhotoUrl(self, data, neededSize=PhotoSize.MEDIUM): #затычка, переделать как в паскале #todo
-        result = ''
+        sizes = {}
+        for size in data:
+            sizes[size['width']+size['height']] = size
+        sortedSizes = sorted(sizes)
 
-        resultObject = data[-1]
+        if neededSize == PhotoSize.SMALL:
+            resultObject = sizes[sortedSizes[0]]
+        if neededSize == PhotoSize.MEDIUM:
+            resultObject = sizes[sortedSizes[int(len(sortedSizes)/2)]]
+        if neededSize == PhotoSize.BIG:
+            resultObject = sizes[sortedSizes[-1]]
+
         if 'url' in resultObject:
             result = resultObject['url']
         else:
@@ -444,12 +453,11 @@ class VK_API(QtCore.QObject):
 
             if attachmentsObj['type'] == 'photo':
                 sizes = attachmentsObj['photo']['sizes']
-                photoUrl = self.getPhotoUrl(sizes, PhotoSize.MEDIUM)
 
                 attachment = Attachment()
-                attachment.url = self.getPhotoUrl(sizes)
+                attachment.url = self.getPhotoUrl(sizes, PhotoSize.BIG)
                 attachment.name = self.getAttachmentName(attachmentsObj)
-                attachment.preview = self.loadAttach(attachment.name, AttachTypes.THUMBNAIL, photoUrl)
+                attachment.preview = self.loadAttach(attachment.name, AttachTypes.THUMBNAIL, self.getPhotoUrl(sizes, PhotoSize.MEDIUM))
                 attachment.attachType = AttachTypes.PHOTO
 
                 result.attachments.append(attachment)
