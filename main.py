@@ -3,7 +3,7 @@
 from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QFileDialog, QMessageBox
 from PyQt6.QtGui import QIcon, QAction, QPalette, QColor
 from PyQt6 import QtWidgets, QtGui
-from PyQt6.QtCore import QTimer, pyqtSignal, QThread, QThreadPool, QObject, QSize, Qt
+from PyQt6.QtCore import QTimer, pyqtSignal, QThread, QThreadPool, QObject, QSize, Qt, QUrl
 
 import mainwindow, chatwidget, messagewidget
 import vkapi, asyncvkapi
@@ -271,6 +271,20 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
                     image.setPixmap(attach.preview.scaledToWidth(220, mode=Qt.TransformationMode.SmoothTransformation))
                     image.attachObject = attach
                     image.attachClicked.connect(self.openImageViewer)
+
+                    if col == 2: 
+                        col = 0
+                        row += 1
+                    messageWidget.imagesLayout.addWidget(image, row, col)
+                    col += 1
+
+                if attach.attachType == vkapi.AttachTypes.VIDEO:
+                    hasImageAttaches = True
+
+                    image = ClickableAttachWidget()
+                    image.setPixmap(attach.preview.scaledToWidth(220, mode=Qt.TransformationMode.SmoothTransformation))
+                    image.attachObject = attach
+                    image.attachClicked.connect(lambda: QtGui.QDesktopServices.openUrl(QUrl(attach.player)))
 
                     if col == 2: 
                         col = 0

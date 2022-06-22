@@ -76,11 +76,11 @@ class VK_API(QtCore.QObject):
         self.logging('Call method '+method)
         url = 'https://api.vk.com/method/' + method
         parameters['access_token'] = self.access_token
+
         if 'v' not in parameters:
             parameters['v'] = self.version
-    
-            result = self.requests.post(url, params=parameters).json()
 
+        result = self.requests.post(url, params=parameters).json()
 
         if 'error' in result:
             if result['error']['error_code'] == 6 or result['error']['error_code'] == 10:
@@ -102,7 +102,7 @@ class VK_API(QtCore.QObject):
 
         return attachType + str(data[attachType]['owner_id']) +'_'+ str(data[attachType]['id'])
 
-    def loadAttach(self, name, fileType: AttachTypes, url) -> QtGui.QPixmap:
+    def loadAttach(self, name, fileType: AttachTypes, url, noPixMap=False) -> QtGui.QPixmap:
         path = ''
         name = str(name)
         if fileType == AttachTypes.PHOTO:
@@ -111,8 +111,10 @@ class VK_API(QtCore.QObject):
             path += 'stickers/'+name+'.png'
         if fileType == AttachTypes.THUMBNAIL:
             path += 'thumbnails/'+name+'.jpg'
+        if fileType == AttachTypes.VIDEO:
+            path += '../video/'+name+'.mp4' #ну и что это за костыль
         
-        return self.loadPhoto(url, path)
+        return self.loadPhoto(url, path, noPixMap)
 
     def loadPhoto(self, url, path, noPixMap=False) -> QtGui.QPixmap:
         self.logging('Loading photo '+path)
@@ -173,7 +175,7 @@ class VK_API(QtCore.QObject):
             return outputText
         else: return text
 
-    def getPhotoUrl(self, data, neededSize=PhotoSize.MEDIUM): #затычка, переделать как в паскале #todo
+    def getPhotoUrl(self, data, neededSize=PhotoSize.MEDIUM):
         sizes = {}
         for size in data:
             sizes[size['width']+size['height']] = size
@@ -440,6 +442,33 @@ class VK_API(QtCore.QObject):
                 result.reply.append(reply_msg)
 
         for attachmentsObj in data['attachments']:
+            if attachmentsObj['type'] == 'video':
+                attachment = Attachment()
+
+                attachment.attachType = AttachTypes.VIDEO
+
+                videoInfo = self.call('video.get',
+                    videos = '{}_{}_{}'.format(
+                        attachmentsObj['video']['owner_id'],
+                        attachmentsObj['video']['id'],
+                        attachmentsObj['video']['access_key']
+                    )
+                )['items'][0]
+
+                videoResolutions = ['mp4_240','mp4_360','mp4_480','mp4_720','mp4_1080']
+                for res in videoResolutions:
+                    if res in videoInfo['files'].keys():
+                        break
+                attachment.url = videoInfo['files'][res]
+                #self.loadPhoto(attachment.url[res], '../video/'+str(attachmentsObj['video']['id'])+'.mp4')
+
+                attachment.name = '{}_{}'.format(videoInfo['owner_id'], videoInfo['id'])
+                attachment.title = videoInfo['title']
+                attachment.player = videoInfo['player']
+                attachment.preview = self.loadAttach(attachment.name, AttachTypes.THUMBNAIL, self.getPhotoUrl(videoInfo['image']))
+
+                result.attachments.append(attachment)
+
             if attachmentsObj['type'] == 'sticker':
                 attachment = Attachment()
 
