@@ -455,12 +455,15 @@ class VK_API(QtCore.QObject):
                     )
                 )['items'][0]
 
-                videoResolutions = ['mp4_240','mp4_360','mp4_480','mp4_720','mp4_1080']
-                for res in videoResolutions:
-                    if res in videoInfo['files'].keys():
-                        break
-                attachment.url = videoInfo['files'][res]
-                #self.loadPhoto(attachment.url[res], '../video/'+str(attachmentsObj['video']['id'])+'.mp4')
+                if 'external' in videoInfo['files']:
+                    attachment.url = videoInfo['files']['external']
+                else:
+                    videoResolutions = ['mp4_1080', 'mp4_720', 'mp4_480', 'mp4_360', 'mp4_240']
+                    for res in videoResolutions:
+                        if res in videoInfo['files'].keys():
+                            break
+                    attachment.url = videoInfo['files'][res]
+                    #self.loadPhoto(attachment.url, '../video/'+str(attachmentsObj['video']['id'])+'.mp4')
 
                 attachment.name = '{}_{}'.format(videoInfo['owner_id'], videoInfo['id'])
                 attachment.title = videoInfo['title']
