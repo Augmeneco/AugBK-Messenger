@@ -444,15 +444,19 @@ class VK_API(QtCore.QObject):
         for attachmentsObj in data['attachments']:
             if attachmentsObj['type'] == 'video':
                 attachment = Attachment()
+                #print(attachmentsObj)
 
                 attachment.attachType = AttachTypes.VIDEO
 
-                videoInfo = self.call('video.get',
-                    videos = '{}_{}_{}'.format(
+                videosParam = '{}_{}'.format(
                         attachmentsObj['video']['owner_id'],
-                        attachmentsObj['video']['id'],
-                        attachmentsObj['video']['access_key']
+                        attachmentsObj['video']['id']
                     )
+                if 'access_key' in attachmentsObj['video']:
+                    videosParam += '_{}'.format(attachmentsObj['video']['access_key'])
+
+                videoInfo = self.call('video.get',
+                    videos = videosParam
                 )['items'][0]
 
                 if 'external' in videoInfo['files']:
