@@ -117,7 +117,7 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>245</width>
+                 <width>223</width>
                  <height>476</height>
                 </rect>
                </property>
@@ -367,7 +367,7 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>553</width>
+                 <width>575</width>
                  <height>235</height>
                 </rect>
                </property>
@@ -551,6 +551,43 @@
         </item>
        </layout>
       </widget>
+      <widget class="QWidget" name="authByWebEngine">
+       <layout class="QVBoxLayout" name="verticalLayout_12" stretch="0,1">
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_8" stretch="0,0">
+          <item>
+           <widget class="QPushButton" name="authByTokenButton2">
+            <property name="text">
+             <string>Авторизация через токен</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_3">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QWebEngineView" name="webEngineView">
+          <property name="url">
+           <url>
+            <string>about:blank</string>
+           </url>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
       <widget class="QWidget" name="authByTokenWindow">
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
@@ -682,6 +719,13 @@
    </layout>
   </widget>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QWebEngineView</class>
+   <extends>QWidget</extends>
+   <header location="global">QtWebEngineWidgets/QWebEngineView</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

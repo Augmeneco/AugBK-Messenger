@@ -4,14 +4,21 @@ from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QFileDialog, QMe
 from PyQt6.QtGui import QIcon, QAction, QPalette, QColor
 from PyQt6 import QtWidgets, QtGui
 from PyQt6.QtCore import QTimer, pyqtSignal, QThread, QThreadPool, QObject, QSize, Qt, QUrl
+from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 import mainwindow, chatwidget, messagewidget
 import vkapi, asyncvkapi
 
 from datetime import datetime
+from enum import IntEnum
 import requests, re, sys, os, traceback, json, threading
 
-
+class StackedWindows(IntEnum):
+    ChatsWindow = 0
+    AuthByWebEngine = 1
+    AuthByToken = 2
+    ImagePreview = 3
+    
 class MessageWidget(QtWidgets.QWidget, messagewidget.Ui_Form):
     moveScrollBottom = pyqtSignal(bool)
     messageClicked = pyqtSignal(object)
@@ -68,24 +75,32 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
         self.initComplete = False
         self.compactMode = False
         self.lastSplitterPos = 300
+        #self.stackedWidget.setCurrentIndex(StackedWindows.ChatsWindow)
         if not os.path.exists('data/config.json'):
-            self.stackedWidget.setCurrentIndex(1)
-            self.authByTokenButton.clicked.connect(self.authByToken)
+            self.stackedWidget.setCurrentIndex(StackedWindows.AuthByWebEngine)
+            self.webEngineView.urlChanged.connect(self.authUrlChanged)
+            self.webEngineView.setUrl(QUrl('https://oauth.vk.com/authorize?client_id=2685278&scope=1073737727&redirect_uri=https://oauth.vk.com/blank.html&display=mobile&response_type=token&revoke=1'))
+            self.authByTokenButton2.clicked.connect(lambda: self.stackedWidget.setCurrentIndex(StackedWindows.AuthByToken))
+            self.authByTokenButton.clicked.connect(lambda: self.authByToken(self.authByTokenEdit.text(), direct=True))
         else:
             self.initMainWindow()
     
-    def authByToken(self):
-        token = self.authByTokenEdit.text()
-        if 'access_token=' in token:
+    def authByToken(self, token, direct=False):
+        if ('access_token=' in token):
             token = re.findall('access_token=(.+?)&',token)[0]
+        elif not direct: return
 
         open('data/config.json','w').write(json.dumps({
             'token':token
         }))
-        self.stackedWidget.setCurrentIndex(0)
+        self.stackedWidget.setCurrentIndex(StackedWindows.ChatsWindow)
         self.initMainWindow()
 
+    def authUrlChanged(self, url):
+        self.authByToken(url.toString())
+
     def initMainWindow(self):
+        self.webEngineView.deleteLater()
         self.config = json.loads(open('data/config.json','r').read())
         self.vkapi = vkapi.VK_API(self.config['token'])
         self.vkapi.newDebugMessage.connect(self.logging)
@@ -195,7 +210,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
             QtWidgets.QPlainTextEdit.keyPressEvent(self.messageTextEdit, event)
 
     def openImageViewer(self, attach):
-        self.stackedWidget.setCurrentIndex(2)
+        self.stackedWidget.setCurrentIndex(StackedWindows.ImagePreview)
         imageAttach = self.vkapi.loadAttach(attach.name, vkapi.AttachTypes.PHOTO, attach.url)
 
         if imageAttach.width() >= self.imagePreviewWindow.width():
@@ -212,7 +227,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
 
     def closeImageViewer(self, event):
         self.imagePreviewWidget.clear()
-        self.stackedWidget.setCurrentIndex(0)
+        self.stackedWidget.setCurrentIndex(StackedWindows.ChatsWindow)
         self.adaptInterface()
 
     def deleteMsgAttach(self, event): 
