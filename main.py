@@ -416,7 +416,7 @@ class MainWindow(QMainWindow, mainwindow.Ui_MainWindow):
             self.msgsListLayout.insertWidget(0, messageWidget)
 
         self.chatAvatar.setPixmap(chatObject.image.scaled(32,32, transformMode=Qt.TransformationMode.SmoothTransformation))
-        self.chatName.setText(chatObject.name)
+        self.chatName.setText(chatObject.name[:24])
 
         if self.scrollArea.verticalScrollBar().value() != self.scrollArea.verticalScrollBar().maximum():
             self.needScrollBottom = False
